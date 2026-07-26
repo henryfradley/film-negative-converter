@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NEGATIVE.LAB</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      :root {
+        --bg:            #100c0a;
+        --bg-elev:       #1a1512;
+        --bg-input:      #221b17;
+        --border:        #2d241e;
+        --border-strong: #3a2f27;
+        --text:          #f0e6d2;
+        --text-dim:      #8a7d6a;
+        --text-faint:    #55493d;
+        --amber:         #e89a3c;
+        --amber-hi:      #ffb968;
+        --amber-dim:     #a06a20;
+        --red:           #c34a3a;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; padding: 0; height: 100%;
+        background: var(--bg); color: var(--text);
+        font: 13px/1.5 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+        -webkit-font-smoothing: antialiased; }
+      #app { display: flex; flex-direction: column; height: 100vh; }
+
+      /* ── header ──────────────────────────────────────────────────── */
+      header { padding: 14px 20px; border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; gap: 20px;
+        background: var(--bg-elev); position: relative; }
+      header::before {
+        /* film-strip sprocket band along the top edge */
+        content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+        background-image: radial-gradient(circle at 6px 3px, var(--bg) 2px, transparent 2.5px);
+        background-size: 14px 6px; background-repeat: repeat-x;
+        opacity: 0.6;
+      }
+      header h1 { font-size: 14px; font-weight: 700; margin: 0;
+        letter-spacing: 0.15em; text-transform: uppercase;
+        color: var(--amber); }
+      header h1 .dot { color: var(--red); }
+      header .status { color: var(--text-dim); font-size: 11px;
+        letter-spacing: 0.08em; text-transform: uppercase; }
+
+      .main { flex: 1; display: flex; overflow: hidden; }
+      .canvas-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+      /* ── canvas area ─────────────────────────────────────────────── */
+      .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center;
+        position: relative; overflow: hidden; padding: 20px; }
+
+      /* ── thumbnail strip ─────────────────────────────────────────── */
+      .thumb-strip { display: none; flex-shrink: 0;
+        border-top: 1px solid var(--border); background: var(--bg-elev);
+        padding: 12px 16px 16px; overflow-x: auto; overflow-y: hidden;
+        gap: 10px; align-items: center; height: 110px; }
+      .thumb-strip.ready { display: flex; }
+      .thumb { position: relative; flex-shrink: 0; width: 110px; height: 74px;
+        background: var(--bg); cursor: pointer; overflow: hidden;
+        border: 1px solid var(--border-strong); }
+      .thumb:hover { border-color: var(--text-dim); }
+      .thumb.active { border-color: var(--amber);
+        box-shadow: 0 0 0 1px var(--amber), 0 0 10px rgba(232,154,60,0.3); }
+      .thumb canvas, .thumb img { display: block; width: 100%; height: 100%; object-fit: cover; }
+      .thumb .thumb-x { position: absolute; top: 2px; right: 2px;
+        width: 18px; height: 18px; background: rgba(16,12,10,0.85);
+        color: var(--text-dim); border: 0; padding: 0; margin: 0;
+        font: 700 12px/1 'Space Mono', monospace; letter-spacing: 0;
+        cursor: pointer; display: none; text-transform: none; }
+      .thumb:hover .thumb-x { display: block; }
+      .thumb .thumb-x:hover { color: var(--red); background: rgba(16,12,10,0.95); }
+      .thumb-add { flex-shrink: 0; width: 74px; height: 74px;
+        border: 1px dashed var(--border-strong); background: transparent;
+        color: var(--text-dim); font-size: 24px; margin: 0; padding: 0;
+        cursor: pointer; }
+      .thumb-add:hover { border-color: var(--amber); color: var(--amber); }
+      .thumb-strip::-webkit-scrollbar { height: 6px; }
+      .thumb-strip::-webkit-scrollbar-thumb { background: var(--border-strong); }
+      .canvas-area.hover::after { content: ''; position: absolute; inset: 12px;
+        border: 2px dashed var(--amber); pointer-events: none;
+        background: rgba(232, 154, 60, 0.03); }
+
+      .empty { color: var(--text-dim); text-align: center; padding: 40px 30px;
+        border: 1px dashed var(--border-strong); position: relative;
+        letter-spacing: 0.08em; }
+      .empty::before, .empty::after {
+        content: ''; position: absolute; left: 0; right: 0; height: 14px;
+        background-image: radial-gradient(circle at 12px 7px, var(--bg-elev) 4px, transparent 4.5px);
+        background-size: 26px 14px; background-repeat: repeat-x;
+        background-color: var(--amber-dim); opacity: 0.5;
+      }
+      .empty::before { top: -1px; }
+      .empty::after  { bottom: -1px; }
+      .empty strong { color: var(--amber); font-weight: 700;
+        text-transform: uppercase; letter-spacing: 0.15em;
+        font-size: 15px; display: block; margin-bottom: 8px; }
+      .empty .sub { font-size: 11px; color: var(--text-faint);
+        margin-top: 12px; letter-spacing: 0.05em; }
+      input[type="file"] { display: none; }
+
+      /* ── canvas + crop overlay ───────────────────────────────────── */
+      .canvas-wrap { position: relative; display: none; max-width: 100%; max-height: 100%; }
+      .canvas-wrap.ready { display: block; }
+      .canvas-wrap canvas { display: block; max-width: 100%;
+        max-height: calc(100vh - 100px);
+        box-shadow: 0 0 0 1px var(--border-strong), 0 20px 60px rgba(0,0,0,0.6); }
+
+      .crop { position: absolute; inset: 0; pointer-events: none; }
+      .crop-dim { position: absolute; background: rgba(16, 12, 10, 0.72);
+        pointer-events: none; }
+      .crop-rect { position: absolute; border: 1px solid var(--amber);
+        cursor: move; pointer-events: auto;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.3); }
+      .crop-handle { position: absolute; width: 12px; height: 12px;
+        background: var(--amber); border: 1px solid var(--bg);
+        pointer-events: auto; box-shadow: 0 0 8px rgba(232, 154, 60, 0.4); }
+      .crop-h-nw { top: -7px;    left: -7px;   cursor: nw-resize; }
+      .crop-h-ne { top: -7px;    right: -7px;  cursor: ne-resize; }
+      .crop-h-sw { bottom: -7px; left: -7px;   cursor: sw-resize; }
+      .crop-h-se { bottom: -7px; right: -7px;  cursor: se-resize; }
+      .crop-h-n  { top: -7px;    left: 50%; transform: translateX(-50%); cursor: n-resize; }
+      .crop-h-s  { bottom: -7px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+      .crop-h-w  { left: -7px;   top: 50%; transform: translateY(-50%);  cursor: w-resize; }
+      .crop-h-e  { right: -7px;  top: 50%; transform: translateY(-50%);  cursor: e-resize; }
+
+      /* ── sidebar ─────────────────────────────────────────────────── */
+      aside.controls { width: 260px; padding: 20px 18px;
+        background: var(--bg-elev);
+        border-left: 1px solid var(--border);
+        overflow-y: auto; }
+      aside.controls[hidden] { display: none; }
+
+      .section-label { font-size: 10px; color: var(--amber);
+        letter-spacing: 0.2em; text-transform: uppercase; font-weight: 700;
+        margin: 4px 0 12px; padding-bottom: 6px;
+        border-bottom: 1px solid var(--border); }
+      .section-label:not(:first-child) { margin-top: 20px; }
+
+      .control { margin-bottom: 12px; }
+      .control-header { display: flex; justify-content: space-between; align-items: baseline;
+        margin-bottom: 6px; }
+      .control label { font-size: 10px; color: var(--text-dim);
+        text-transform: uppercase; letter-spacing: 0.14em; }
+      .value { font-size: 11px; color: var(--amber); font-weight: 700; }
+
+      /* Custom range slider styling */
+      input[type="range"] { -webkit-appearance: none; appearance: none;
+        width: 100%; margin: 0; padding: 0; background: transparent; cursor: pointer;
+        height: 20px; }
+      input[type="range"]::-webkit-slider-runnable-track {
+        background: var(--bg-input); height: 3px; border: 1px solid var(--border);
+      }
+      input[type="range"]::-moz-range-track {
+        background: var(--bg-input); height: 3px; border: 1px solid var(--border);
+      }
+      input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
+        width: 12px; height: 12px; background: var(--amber);
+        border: 1px solid var(--bg); margin-top: -6px;
+        box-shadow: 0 0 6px rgba(232, 154, 60, 0.5);
+      }
+      input[type="range"]::-moz-range-thumb {
+        width: 12px; height: 12px; background: var(--amber);
+        border: 1px solid var(--bg);
+        box-shadow: 0 0 6px rgba(232, 154, 60, 0.5);
+      }
+      input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-faint); }
+      input[type="checkbox"] { accent-color: var(--amber); width: 14px; height: 14px; }
+
+      /* Checkbox row */
+      .check-row { display: flex; align-items: center; gap: 10px;
+        font-size: 11px; color: var(--text-dim); text-transform: uppercase;
+        letter-spacing: 0.1em; cursor: pointer; padding: 4px 0; }
+
+      /* Buttons */
+      button { display: block; width: 100%; margin-top: 8px; padding: 10px 12px;
+        background: transparent; border: 1px solid var(--border-strong);
+        color: var(--text); font: 700 11px/1 'Space Mono', monospace;
+        letter-spacing: 0.15em; text-transform: uppercase; cursor: pointer;
+        transition: background 0.15s, border-color 0.15s, color 0.15s; }
+      button:hover:not(:disabled) { border-color: var(--amber);
+        color: var(--amber); background: rgba(232, 154, 60, 0.05); }
+      button:disabled { color: var(--text-faint); cursor: not-allowed; }
+      button.primary { border-color: var(--amber); color: var(--amber); }
+      button.primary:hover:not(:disabled) { background: var(--amber);
+        color: var(--bg); }
+      button.download { border-color: var(--red); color: var(--red);
+        margin-top: 14px; }
+      button.download:hover:not(:disabled) { background: var(--red);
+        color: var(--text); border-color: var(--red); }
+
+      /* Preset chips */
+      .preset-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px;
+        margin-bottom: 6px; }
+      .preset-btn { margin: 0; padding: 8px 4px; font-size: 9.5px;
+        letter-spacing: 0.1em; white-space: nowrap; overflow: hidden;
+        text-overflow: ellipsis; }
+      .preset-btn.active { border-color: var(--amber); color: var(--amber);
+        background: rgba(232, 154, 60, 0.08); }
+
+      /* Scrollbar */
+      aside.controls::-webkit-scrollbar { width: 8px; }
+      aside.controls::-webkit-scrollbar-track { background: transparent; }
+      aside.controls::-webkit-scrollbar-thumb { background: var(--border-strong); }
+
+      /* ── loading overlay ─────────────────────────────────────────── */
+      .loading { position: fixed; inset: 0; background: rgba(16, 12, 10, 0.85);
+        display: none; align-items: center; justify-content: center;
+        z-index: 100; backdrop-filter: blur(4px); }
+      .loading.on { display: flex; }
+      .loading-inner { text-align: center; min-width: 340px; padding: 32px;
+        border: 1px solid var(--border-strong); background: var(--bg-elev); }
+      .loading-title { font-size: 12px; font-weight: 700; color: var(--amber);
+        letter-spacing: 0.4em; margin-bottom: 20px;
+        text-transform: uppercase; }
+      .loading-title::before,
+      .loading-title::after { content: '·'; opacity: 0.4; margin: 0 6px; }
+      .loading-title .developing::after {
+        content: '...'; display: inline-block;
+        animation: dots 1.4s steps(4, end) infinite; overflow: hidden;
+        vertical-align: bottom; width: 1em; white-space: nowrap; }
+      @keyframes dots {
+        0%   { width: 0; }
+        33%  { width: 0.33em; }
+        66%  { width: 0.66em; }
+        100% { width: 1em; }
+      }
+      .loading-file { font-size: 11px; color: var(--text-dim);
+        letter-spacing: 0.1em; margin-bottom: 20px;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        text-transform: uppercase; }
+      .loading-bar { height: 14px; position: relative; overflow: hidden;
+        background-color: var(--amber-dim); opacity: 0.35;
+        background-image: radial-gradient(circle at 8px 7px, var(--bg-elev) 3px, transparent 3.5px);
+        background-size: 18px 14px; background-repeat: repeat-x; }
+      .loading-bar-fill { position: absolute; top: 0; left: 0; height: 100%;
+        background-image: radial-gradient(circle at 8px 7px, var(--bg-elev) 3px, transparent 3.5px);
+        background-size: 18px 14px; background-repeat: repeat-x;
+        background-color: var(--amber); transition: width 0.25s ease-out; }
+      .loading-count { font-size: 10px; color: var(--text-dim);
+        letter-spacing: 0.2em; margin-top: 14px; text-transform: uppercase; }
+
+      /* Thumbnail placeholder (pre-decode) */
+      .thumb.loading { border-color: var(--amber-dim);
+        display: flex; align-items: center; justify-content: center; }
+      .thumb.loading::before { content: ''; display: block;
+        width: 24px; height: 24px;
+        border: 2px solid var(--border-strong);
+        border-top-color: var(--amber);
+        border-radius: 50%;
+        animation: spin 0.9s linear infinite; }
+      @keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>Negative<span class="dot">.</span>Lab</h1>
+        <span class="status" id="status">Load a negative</span>
+      </header>
+      <div class="main">
+        <div class="canvas-column">
+          <div class="canvas-area" id="drop">
+            <div class="empty" id="empty">
+              <strong>Drop a negative</strong>
+              <div>Camera RAW · JPEG · PNG · (multiple ok)</div>
+              <div class="sub">DNG · NEF · CR2/CR3 · ARW · RAF · ORF · RW2 · PEF</div>
+              <div class="sub" style="color:var(--text-faint)">HE* Nikon → convert to DNG first</div>
+            </div>
+            <input type="file" id="file" multiple accept=".dng,.nef,.cr2,.cr3,.crw,.arw,.raf,.orf,.rw2,.pef,.srw,.iiq,.3fr,.dcr,.mrw,image/jpeg,image/png,image/webp" />
+            <div class="canvas-wrap" id="canvas-wrap">
+              <canvas id="canvas"></canvas>
+              <div class="crop" id="crop">
+                <div class="crop-dim" id="dim-top"></div>
+                <div class="crop-dim" id="dim-bottom"></div>
+                <div class="crop-dim" id="dim-left"></div>
+                <div class="crop-dim" id="dim-right"></div>
+                <div class="crop-rect" id="crop-rect">
+                  <div class="crop-handle crop-h-nw" data-handle="nw"></div>
+                  <div class="crop-handle crop-h-ne" data-handle="ne"></div>
+                  <div class="crop-handle crop-h-sw" data-handle="sw"></div>
+                  <div class="crop-handle crop-h-se" data-handle="se"></div>
+                  <div class="crop-handle crop-h-n"  data-handle="n"></div>
+                  <div class="crop-handle crop-h-s"  data-handle="s"></div>
+                  <div class="crop-handle crop-h-w"  data-handle="w"></div>
+                  <div class="crop-handle crop-h-e"  data-handle="e"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="thumb-strip" id="thumb-strip">
+            <button class="thumb-add" id="thumb-add" title="Add more">+</button>
+          </div>
+        </div>
+
+        <aside class="controls" id="controls" hidden>
+          <div class="section-label">Presets</div>
+          <div class="preset-grid" id="presets"></div>
+
+          <div class="section-label">Tone</div>
+          <div class="control">
+            <div class="control-header"><label>Contrast</label><span class="value" id="v-contrast">6.0</span></div>
+            <input type="range" id="s-contrast" min="1" max="15" step="0.1" value="6">
+          </div>
+          <div class="control">
+            <div class="control-header"><label>Curves</label><span class="value" id="v-curves">1.00</span></div>
+            <input type="range" id="s-curves" min="0.4" max="2.5" step="0.02" value="1">
+          </div>
+          <div class="control">
+            <div class="control-header"><label>Saturation</label><span class="value" id="v-saturation">1.30</span></div>
+            <input type="range" id="s-saturation" min="0" max="2.5" step="0.05" value="1.3">
+          </div>
+          <div class="control">
+            <div class="control-header"><label>Sharpen</label><span class="value" id="v-sharpen">0.00</span></div>
+            <input type="range" id="s-sharpen" min="0" max="3" step="0.05" value="0">
+          </div>
+
+          <div class="section-label">Color</div>
+          <div class="control">
+            <div class="control-header"><label>Temperature</label><span class="value" id="v-temp">0.00</span></div>
+            <input type="range" id="s-temp" min="-1" max="1" step="0.01" value="0">
+          </div>
+          <div class="control">
+            <div class="control-header"><label>Tint</label><span class="value" id="v-tint">0.00</span></div>
+            <input type="range" id="s-tint" min="-1" max="1" step="0.01" value="0">
+          </div>
+          <div class="control">
+            <div class="control-header"><label>Shadow warmth</label><span class="value" id="v-shadow-warm">0.00</span></div>
+            <input type="range" id="s-shadow-warm" min="-1" max="1" step="0.01" value="0">
+          </div>
+          <div class="control">
+            <div class="control-header"><label>Highlight warmth</label><span class="value" id="v-highlight-warm">0.00</span></div>
+            <input type="range" id="s-highlight-warm" min="-1" max="1" step="0.01" value="0">
+          </div>
+
+          <div class="section-label">Levels</div>
+          <div class="control">
+            <div class="control-header"><label>Black point</label><span class="value" id="v-black">0.00</span></div>
+            <input type="range" id="s-black" min="0" max="0.5" step="0.005" value="0">
+          </div>
+          <div class="control">
+            <div class="control-header"><label>White point</label><span class="value" id="v-white">1.00</span></div>
+            <input type="range" id="s-white" min="0.5" max="1" step="0.005" value="1">
+          </div>
+
+          <div class="section-label">Geometry</div>
+          <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <button id="orient-ccw" style="margin:0;padding:8px 0;flex:1;font-size:14px;">↺ 90°</button>
+            <button id="orient-cw"  style="margin:0;padding:8px 0;flex:1;font-size:14px;">↻ 90°</button>
+          </div>
+          <div class="control">
+            <div class="control-header"><label>Rotate fine</label><span class="value" id="v-rotate">0.0°</span></div>
+            <input type="range" id="s-rotate" min="-15" max="15" step="0.1" value="0">
+          </div>
+          <label class="check-row">
+            <input type="checkbox" id="s-lock32">
+            Lock crop to 3:2
+          </label>
+
+          <div class="section-label">Actions</div>
+          <button id="crop-apply" class="primary">Apply crop ↵</button>
+          <button id="crop-reset">Reset crop</button>
+          <button id="reset">Reset tone</button>
+          <button id="apply-all">Apply tone to all</button>
+          <button id="download" class="download">Download PNG</button>
+          <button id="download-all" class="download">Download all</button>
+          <button id="clear-session" style="margin-top:20px;">Clear session</button>
+        </aside>
+      </div>
+    </div>
+    <div class="loading" id="loading">
+      <div class="loading-inner">
+        <div class="loading-title"><span class="developing">Developing</span></div>
+        <div class="loading-file" id="loading-file">&nbsp;</div>
+        <div class="loading-bar"><div class="loading-bar-fill" id="loading-bar-fill" style="width:0"></div></div>
+        <div class="loading-count" id="loading-count">&nbsp;</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

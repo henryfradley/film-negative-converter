@@ -1,0 +1,27 @@
+# Node
+node_modules/
+dist/
+
+# Rust
+decoder/target/
+
+# WASM build output — DO commit these; Vercel builds JS only (wasm-pack isn't in the deploy env)
+# decoder/pkg/  ← intentionally NOT ignored
+
+# Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Local dev artefacts (large files, personal)
+*.nef
+*.NEF
+*.dng
+*.DNG
+*.arw
+*.ARW
+*.cr2
+*.CR2
+decoder/output.png
+decoder/output.bin
+decoder/output_positive.png

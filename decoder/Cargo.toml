@@ -1,0 +1,33 @@
+[package]
+name = "decoder"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[[bin]]
+name = "decode_native"
+path = "src/bin/decode_native.rs"
+required-features = ["native"]
+
+[features]
+default = ["native"]
+native = ["dep:rsraw", "dep:image"]
+
+[dependencies]
+# Native-only: rsraw wraps system libraw
+rsraw = { version = "0.1", optional = true }
+image  = { version = "0.25", optional = true }
+
+# WASM-only: rawler is pure Rust, handles DNG (though not Nikon HE*)
+[target.'cfg(target_arch = "wasm32")'.dependencies]
+rawler = "0.7"
+wasm-bindgen = "0.2"
+console_error_panic_hook = "0.1"
+# uuid (transitive via rawler) needs a JS randomness source on WASM
+uuid = { version = "1", features = ["js"] }
+
+[profile.release]
+opt-level = 3
+lto = true
