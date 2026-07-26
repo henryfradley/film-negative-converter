@@ -718,5 +718,11 @@ drop.addEventListener('drop', e => {
   if (list && list.length) loadFiles(list).catch(err => setStatus(`error: ${err}`));
 });
 
+// Re-fit canvas display when the window changes so the crop overlay always
+// matches the actually-visible image area.
+window.addEventListener('resize', () => {
+  if (renderer && current()) render();
+});
+
 // Auto-restore anything persisted from a previous session.
 restoreSaved().catch(err => console.warn('[restore]', err));

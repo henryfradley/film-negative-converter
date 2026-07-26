@@ -105,13 +105,12 @@
       input[type="file"] { display: none; }
 
       /* ── canvas + crop overlay ───────────────────────────────────── */
-      /* Wrap sizes to canvas display size so the absolutely-positioned crop
-         overlay tracks it perfectly. Canvas itself constrained to the visible
-         canvas-area only — no viewport-based math that misses the thumb strip. */
-      .canvas-wrap { position: relative; display: none;
-        max-width: 100%; max-height: 100%; }
+      /* Wrap sizes to the canvas element (which has its display size locked
+         in JS via Renderer.lockDisplaySize). The crop overlay is inset:0
+         and thus perfectly matches the canvas. */
+      .canvas-wrap { position: relative; display: none; }
       .canvas-wrap.ready { display: block; }
-      .canvas-wrap canvas { display: block; max-width: 100%; max-height: 100%;
+      .canvas-wrap canvas { display: block;
         box-shadow: 0 0 0 1px var(--border-strong), 0 20px 60px rgba(0,0,0,0.6); }
 
       .crop { position: absolute; inset: 0; pointer-events: none; }

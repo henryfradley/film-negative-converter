@@ -224,12 +224,37 @@ export class Renderer {
     return swap ? [this.srcHeight, this.srcWidth] : [this.srcWidth, this.srcHeight];
   }
 
-  /// Size the canvas to the full frame's aspect ratio, capped at MAX px.
+  /// Size the drawing buffer to the source aspect (capped at MAX px)
+  /// AND lock the CSS display size to fit the actual visible container.
+  /// Both are needed: buffer size sets shader resolution; display size
+  /// ensures the wrap element (and thus the crop overlay) doesn't extend
+  /// past what the user can see.
   fitCanvas(p: StretchParams, maxDim = 1800) {
     const [w, h] = this.effectiveSize(p);
     const scale = Math.min(1, maxDim / Math.max(w, h));
     this.canvas.width  = Math.max(1, Math.round(w * scale));
     this.canvas.height = Math.max(1, Math.round(h * scale));
+    this.lockDisplaySize();
+  }
+
+  /// Explicitly compute canvas display size from its available container
+  /// (canvas-area minus padding). Preserves aspect ratio. Call after any
+  /// change that affects intrinsic size or on window resize.
+  lockDisplaySize() {
+    const wrap = this.canvas.parentElement;
+    const area = wrap?.parentElement;
+    if (!wrap || !area) return;
+    const rect = area.getBoundingClientRect();
+    const cs = getComputedStyle(area);
+    const availW = Math.max(1, rect.width  - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight));
+    const availH = Math.max(1, rect.height - parseFloat(cs.paddingTop)  - parseFloat(cs.paddingBottom));
+    const bufAspect  = this.canvas.width / this.canvas.height;
+    const availAspect = availW / availH;
+    let dw: number, dh: number;
+    if (bufAspect > availAspect) { dw = availW; dh = availW / bufAspect; }
+    else                          { dh = availH; dw = availH * bufAspect; }
+    this.canvas.style.width  = `${Math.floor(dw)}px`;
+    this.canvas.style.height = `${Math.floor(dh)}px`;
   }
 
   render(p: StretchParams) {
