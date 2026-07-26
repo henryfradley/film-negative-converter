@@ -47,12 +47,13 @@
       header .status { color: var(--text-dim); font-size: 11px;
         letter-spacing: 0.08em; text-transform: uppercase; }
 
-      .main { flex: 1; display: flex; overflow: hidden; }
-      .canvas-column { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+      .canvas-column { flex: 1; display: flex; flex-direction: column;
+        min-width: 0; min-height: 0; }
 
       /* ── canvas area ─────────────────────────────────────────────── */
       .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center;
-        position: relative; overflow: hidden; padding: 20px; }
+        position: relative; overflow: hidden; padding: 20px; min-height: 0; }
 
       /* ── thumbnail strip ─────────────────────────────────────────── */
       .thumb-strip { display: none; flex-shrink: 0;
@@ -104,10 +105,13 @@
       input[type="file"] { display: none; }
 
       /* ── canvas + crop overlay ───────────────────────────────────── */
-      .canvas-wrap { position: relative; display: none; max-width: 100%; max-height: 100%; }
+      /* Wrap sizes to canvas display size so the absolutely-positioned crop
+         overlay tracks it perfectly. Canvas itself constrained to the visible
+         canvas-area only — no viewport-based math that misses the thumb strip. */
+      .canvas-wrap { position: relative; display: none;
+        max-width: 100%; max-height: 100%; }
       .canvas-wrap.ready { display: block; }
-      .canvas-wrap canvas { display: block; max-width: 100%;
-        max-height: calc(100vh - 100px);
+      .canvas-wrap canvas { display: block; max-width: 100%; max-height: 100%;
         box-shadow: 0 0 0 1px var(--border-strong), 0 20px 60px rgba(0,0,0,0.6); }
 
       .crop { position: absolute; inset: 0; pointer-events: none; }

@@ -1,0 +1,61 @@
+name: Rebuild WASM
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'decoder/src/**'
+      - 'decoder/Cargo.toml'
+      - 'decoder/Cargo.lock'
+      - '.github/workflows/wasm.yml'
+  workflow_dispatch: {}
+
+# Prevent this workflow re-triggering itself when it pushes the rebuilt pkg/
+# (default GITHUB_TOKEN pushes do not trigger workflows, but be explicit).
+concurrency:
+  group: wasm-rebuild
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+
+      - name: Cache Cargo + build
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: decoder
+
+      - name: Install wasm-pack
+        uses: jetli/wasm-pack-action@v0.4.0
+        with:
+          version: latest
+
+      - name: Build WASM
+        working-directory: decoder
+        run: wasm-pack build --target web --no-default-features
+
+      - name: Drop wasm-pack's auto .gitignore
+        run: rm -f decoder/pkg/.gitignore
+
+      - name: Commit rebuilt pkg/ (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add decoder/pkg/
+          if git diff --staged --quiet; then
+            echo "No WASM changes."
+          else
+            git commit -m "chore: rebuild WASM"
+            git push
+          fi
