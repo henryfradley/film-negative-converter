@@ -21,39 +21,112 @@
         --amber-hi:      #ffb968;
         --amber-dim:     #a06a20;
         --red:           #c34a3a;
+        --film-base:     #8a5a1e;
+        --film-base-dk:  #6a4218;
+        --film-mark:     #f0c060;
       }
       * { box-sizing: border-box; }
-      html, body { margin: 0; padding: 0; height: 100%;
-        background: var(--bg); color: var(--text);
+      html, body { margin: 0; padding: 0; height: 100%; background: var(--bg); color: var(--text);
         font: 13px/1.5 'Space Mono', ui-monospace, SFMono-Regular, monospace;
         -webkit-font-smoothing: antialiased; }
+      a { color: inherit; text-decoration: none; }
+
       #app { display: flex; flex-direction: column; height: 100vh; }
 
       /* ── header ──────────────────────────────────────────────────── */
       header { padding: 14px 20px; border-bottom: 1px solid var(--border);
         display: flex; align-items: center; gap: 20px;
-        background: var(--bg-elev); position: relative; }
+        background: var(--bg-elev); position: relative; flex-shrink: 0; }
       header::before {
-        /* film-strip sprocket band along the top edge */
         content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px;
         background-image: radial-gradient(circle at 6px 3px, var(--bg) 2px, transparent 2.5px);
-        background-size: 14px 6px; background-repeat: repeat-x;
-        opacity: 0.6;
+        background-size: 14px 6px; background-repeat: repeat-x; opacity: 0.6;
       }
       header h1 { font-size: 14px; font-weight: 700; margin: 0;
-        letter-spacing: 0.15em; text-transform: uppercase;
-        color: var(--amber); }
+        letter-spacing: 0.15em; text-transform: uppercase; color: var(--amber);
+        cursor: pointer; }
       header h1 .dot { color: var(--red); }
       header .status { color: var(--text-dim); font-size: 11px;
-        letter-spacing: 0.08em; text-transform: uppercase; }
+        letter-spacing: 0.08em; text-transform: uppercase; flex: 1; }
+      header nav { display: flex; gap: 4px; }
+      header nav a { padding: 6px 12px; font-size: 11px; letter-spacing: 0.15em;
+        text-transform: uppercase; color: var(--text-dim); cursor: pointer;
+        border: 1px solid transparent; transition: color 0.15s, border-color 0.15s; }
+      header nav a:hover { color: var(--amber); }
+      header nav a.active { color: var(--amber); border-color: var(--border-strong); }
 
-      .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
+      /* ── view swap ───────────────────────────────────────────────── */
+      .view { flex: 1; display: none; min-height: 0; }
+      .view.active { display: flex; }
+
+      /* ── hero: full-screen film negative ─────────────────────────── */
+      .hero { flex-direction: column; overflow: hidden;
+        background:
+          radial-gradient(ellipse at top, #1c1410 0%, var(--bg) 50%),
+          var(--bg); }
+      .film-edge { flex-shrink: 0; position: relative;
+        background:
+          linear-gradient(180deg,
+            var(--film-base-dk) 0%,
+            var(--film-base)    50%,
+            var(--film-base-dk) 100%); }
+      .edge-text { display: flex; justify-content: space-between; align-items: center;
+        padding: 8px 24px 4px; color: var(--film-mark);
+        font-size: 10px; letter-spacing: 0.25em; font-weight: 700;
+        text-transform: uppercase; }
+      .edge-text.bottom { padding: 4px 24px 8px; }
+      .edge-text span { opacity: 0.85; }
+      .edge-text .brand { display: flex; align-items: center; gap: 8px; }
+      .edge-text .brand::before { content: '▸'; color: var(--film-mark); }
+      .sprockets { height: 44px;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='44' viewBox='0 0 72 44'%3E%3Crect x='14' y='9' width='44' height='26' rx='5' fill='%23100c0a'/%3E%3C/svg%3E");
+        background-repeat: repeat-x; background-size: 72px 44px; }
+      .film-frame { flex: 1; position: relative; cursor: pointer;
+        background:
+          radial-gradient(ellipse at center, #180f0a 0%, #0a0605 90%);
+        display: flex; align-items: center; justify-content: center;
+        overflow: hidden; }
+      .film-frame::before {
+        content: ''; position: absolute; inset: 30px;
+        border: 1px solid rgba(232, 154, 60, 0.12);
+        transition: border-color 0.2s, background 0.2s; }
+      .film-frame:hover::before { border-color: rgba(232, 154, 60, 0.35); }
+      .film-frame.hover::before { border: 2px dashed var(--amber);
+        background: rgba(232, 154, 60, 0.05); }
+      /* faint film grain overlay */
+      .film-frame::after {
+        content: ''; position: absolute; inset: 0; pointer-events: none;
+        opacity: 0.35; mix-blend-mode: overlay;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E"); }
+      .frame-content { position: relative; z-index: 2; text-align: center;
+        padding: 40px; max-width: 640px; }
+      .frame-content h1 { font-family: 'Space Mono', monospace;
+        font-size: clamp(28px, 5vw, 52px); font-weight: 700;
+        color: var(--amber); letter-spacing: 0.14em; margin: 0 0 20px;
+        text-transform: uppercase; line-height: 1.1;
+        text-shadow: 0 0 30px rgba(232, 154, 60, 0.3); }
+      .frame-content .sub { color: var(--text-dim); font-size: 12px;
+        letter-spacing: 0.2em; text-transform: uppercase; margin: 0 0 6px; }
+      .frame-content .formats { color: var(--text-faint); font-size: 10px;
+        margin-top: 30px; line-height: 1.8; }
+      .frame-content .note { color: var(--text-faint); font-size: 10px;
+        margin-top: 16px; opacity: 0.6; }
+      .frame-content .load-btn { display: inline-block; margin-top: 28px;
+        padding: 12px 24px; border: 1px solid var(--amber); color: var(--amber);
+        font-size: 11px; letter-spacing: 0.2em; text-transform: uppercase;
+        font-weight: 700; cursor: pointer; transition: all 0.15s;
+        background: transparent; font-family: inherit; }
+      .frame-content .load-btn:hover { background: var(--amber); color: var(--bg); }
+
+      /* ── editor view ─────────────────────────────────────────────── */
+      .editor .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
       .canvas-column { flex: 1; display: flex; flex-direction: column;
         min-width: 0; min-height: 0; }
-
-      /* ── canvas area ─────────────────────────────────────────────── */
       .canvas-area { flex: 1; display: flex; align-items: center; justify-content: center;
         position: relative; overflow: hidden; padding: 20px; min-height: 0; }
+      .canvas-area.hover::after { content: ''; position: absolute; inset: 8px;
+        border: 2px dashed var(--amber); pointer-events: none;
+        background: rgba(232, 154, 60, 0.03); }
 
       /* ── thumbnail strip ─────────────────────────────────────────── */
       .thumb-strip { display: none; flex-shrink: 0;
@@ -82,32 +155,8 @@
       .thumb-add:hover { border-color: var(--amber); color: var(--amber); }
       .thumb-strip::-webkit-scrollbar { height: 6px; }
       .thumb-strip::-webkit-scrollbar-thumb { background: var(--border-strong); }
-      .canvas-area.hover::after { content: ''; position: absolute; inset: 12px;
-        border: 2px dashed var(--amber); pointer-events: none;
-        background: rgba(232, 154, 60, 0.03); }
-
-      .empty { color: var(--text-dim); text-align: center; padding: 40px 30px;
-        border: 1px dashed var(--border-strong); position: relative;
-        letter-spacing: 0.08em; }
-      .empty::before, .empty::after {
-        content: ''; position: absolute; left: 0; right: 0; height: 14px;
-        background-image: radial-gradient(circle at 12px 7px, var(--bg-elev) 4px, transparent 4.5px);
-        background-size: 26px 14px; background-repeat: repeat-x;
-        background-color: var(--amber-dim); opacity: 0.5;
-      }
-      .empty::before { top: -1px; }
-      .empty::after  { bottom: -1px; }
-      .empty strong { color: var(--amber); font-weight: 700;
-        text-transform: uppercase; letter-spacing: 0.15em;
-        font-size: 15px; display: block; margin-bottom: 8px; }
-      .empty .sub { font-size: 11px; color: var(--text-faint);
-        margin-top: 12px; letter-spacing: 0.05em; }
-      input[type="file"] { display: none; }
 
       /* ── canvas + crop overlay ───────────────────────────────────── */
-      /* Wrap sizes to the canvas element (which has its display size locked
-         in JS via Renderer.lockDisplaySize). The crop overlay is inset:0
-         and thus perfectly matches the canvas. */
       .canvas-wrap { position: relative; display: none; }
       .canvas-wrap.ready { display: block; }
       .canvas-wrap canvas { display: block;
@@ -116,26 +165,26 @@
       .crop { position: absolute; inset: 0; pointer-events: none; }
       .crop-dim { position: absolute; background: rgba(16, 12, 10, 0.72);
         pointer-events: none; }
-      .crop-rect { position: absolute; border: 1px solid var(--amber);
+      .crop-rect { position: absolute; border: 1px solid rgba(255,255,255,0.9);
         cursor: move; pointer-events: auto;
-        box-shadow: 0 0 0 1px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.3); }
-      .crop-handle { position: absolute; width: 12px; height: 12px;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.4), inset 0 0 0 1px rgba(0,0,0,0.3); }
+      .crop-handle { position: absolute; width: 14px; height: 14px;
         background: var(--amber); border: 1px solid var(--bg);
         pointer-events: auto; box-shadow: 0 0 8px rgba(232, 154, 60, 0.4); }
-      .crop-h-nw { top: -7px;    left: -7px;   cursor: nw-resize; }
-      .crop-h-ne { top: -7px;    right: -7px;  cursor: ne-resize; }
-      .crop-h-sw { bottom: -7px; left: -7px;   cursor: sw-resize; }
-      .crop-h-se { bottom: -7px; right: -7px;  cursor: se-resize; }
-      .crop-h-n  { top: -7px;    left: 50%; transform: translateX(-50%); cursor: n-resize; }
-      .crop-h-s  { bottom: -7px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
-      .crop-h-w  { left: -7px;   top: 50%; transform: translateY(-50%);  cursor: w-resize; }
-      .crop-h-e  { right: -7px;  top: 50%; transform: translateY(-50%);  cursor: e-resize; }
+      .crop-h-nw { top: -8px;    left: -8px;   cursor: nw-resize; }
+      .crop-h-ne { top: -8px;    right: -8px;  cursor: ne-resize; }
+      .crop-h-sw { bottom: -8px; left: -8px;   cursor: sw-resize; }
+      .crop-h-se { bottom: -8px; right: -8px;  cursor: se-resize; }
+      .crop-h-n  { top: -8px;    left: 50%; transform: translateX(-50%); cursor: n-resize; }
+      .crop-h-s  { bottom: -8px; left: 50%; transform: translateX(-50%); cursor: s-resize; }
+      .crop-h-w  { left: -8px;   top: 50%; transform: translateY(-50%);  cursor: w-resize; }
+      .crop-h-e  { right: -8px;  top: 50%; transform: translateY(-50%);  cursor: e-resize; }
 
       /* ── sidebar ─────────────────────────────────────────────────── */
       aside.controls { width: 260px; padding: 20px 18px;
         background: var(--bg-elev);
         border-left: 1px solid var(--border);
-        overflow-y: auto; }
+        overflow-y: auto; flex-shrink: 0; }
       aside.controls[hidden] { display: none; }
 
       .section-label { font-size: 10px; color: var(--amber);
@@ -151,35 +200,26 @@
         text-transform: uppercase; letter-spacing: 0.14em; }
       .value { font-size: 11px; color: var(--amber); font-weight: 700; }
 
-      /* Custom range slider styling */
       input[type="range"] { -webkit-appearance: none; appearance: none;
-        width: 100%; margin: 0; padding: 0; background: transparent; cursor: pointer;
-        height: 20px; }
+        width: 100%; margin: 0; padding: 0; background: transparent; cursor: pointer; height: 20px; }
       input[type="range"]::-webkit-slider-runnable-track {
-        background: var(--bg-input); height: 3px; border: 1px solid var(--border);
-      }
+        background: var(--bg-input); height: 3px; border: 1px solid var(--border); }
       input[type="range"]::-moz-range-track {
-        background: var(--bg-input); height: 3px; border: 1px solid var(--border);
-      }
+        background: var(--bg-input); height: 3px; border: 1px solid var(--border); }
       input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none;
         width: 12px; height: 12px; background: var(--amber);
         border: 1px solid var(--bg); margin-top: -6px;
-        box-shadow: 0 0 6px rgba(232, 154, 60, 0.5);
-      }
+        box-shadow: 0 0 6px rgba(232, 154, 60, 0.5); }
       input[type="range"]::-moz-range-thumb {
         width: 12px; height: 12px; background: var(--amber);
-        border: 1px solid var(--bg);
-        box-shadow: 0 0 6px rgba(232, 154, 60, 0.5);
-      }
+        border: 1px solid var(--bg); box-shadow: 0 0 6px rgba(232, 154, 60, 0.5); }
       input[type="range"]:disabled::-webkit-slider-thumb { background: var(--text-faint); }
       input[type="checkbox"] { accent-color: var(--amber); width: 14px; height: 14px; }
 
-      /* Checkbox row */
       .check-row { display: flex; align-items: center; gap: 10px;
         font-size: 11px; color: var(--text-dim); text-transform: uppercase;
         letter-spacing: 0.1em; cursor: pointer; padding: 4px 0; }
 
-      /* Buttons */
       button { display: block; width: 100%; margin-top: 8px; padding: 10px 12px;
         background: transparent; border: 1px solid var(--border-strong);
         color: var(--text); font: 700 11px/1 'Space Mono', monospace;
@@ -189,10 +229,8 @@
         color: var(--amber); background: rgba(232, 154, 60, 0.05); }
       button:disabled { color: var(--text-faint); cursor: not-allowed; }
       button.primary { border-color: var(--amber); color: var(--amber); }
-      button.primary:hover:not(:disabled) { background: var(--amber);
-        color: var(--bg); }
-      button.download { border-color: var(--red); color: var(--red);
-        margin-top: 14px; }
+      button.primary:hover:not(:disabled) { background: var(--amber); color: var(--bg); }
+      button.download { border-color: var(--red); color: var(--red); margin-top: 14px; }
       button.download:hover:not(:disabled) { background: var(--red);
         color: var(--text); border-color: var(--red); }
 
@@ -205,7 +243,6 @@
       .preset-btn.active { border-color: var(--amber); color: var(--amber);
         background: rgba(232, 154, 60, 0.08); }
 
-      /* Scrollbar */
       aside.controls::-webkit-scrollbar { width: 8px; }
       aside.controls::-webkit-scrollbar-track { background: transparent; }
       aside.controls::-webkit-scrollbar-thumb { background: var(--border-strong); }
@@ -218,8 +255,7 @@
       .loading-inner { text-align: center; min-width: 340px; padding: 32px;
         border: 1px solid var(--border-strong); background: var(--bg-elev); }
       .loading-title { font-size: 12px; font-weight: 700; color: var(--amber);
-        letter-spacing: 0.4em; margin-bottom: 20px;
-        text-transform: uppercase; }
+        letter-spacing: 0.4em; margin-bottom: 20px; text-transform: uppercase; }
       .loading-title::before,
       .loading-title::after { content: '·'; opacity: 0.4; margin: 0 6px; }
       .loading-title .developing::after {
@@ -227,10 +263,8 @@
         animation: dots 1.4s steps(4, end) infinite; overflow: hidden;
         vertical-align: bottom; width: 1em; white-space: nowrap; }
       @keyframes dots {
-        0%   { width: 0; }
-        33%  { width: 0.33em; }
-        66%  { width: 0.66em; }
-        100% { width: 1em; }
+        0%   { width: 0; }    33%  { width: 0.33em; }
+        66%  { width: 0.66em; } 100% { width: 1em; }
       }
       .loading-file { font-size: 11px; color: var(--text-dim);
         letter-spacing: 0.1em; margin-bottom: 20px;
@@ -254,127 +288,266 @@
         width: 24px; height: 24px;
         border: 2px solid var(--border-strong);
         border-top-color: var(--amber);
-        border-radius: 50%;
-        animation: spin 0.9s linear infinite; }
+        border-radius: 50%; animation: spin 0.9s linear infinite; }
       @keyframes spin { to { transform: rotate(360deg); } }
+
+      /* ── how it works ────────────────────────────────────────────── */
+      .howitworks { flex-direction: column; overflow-y: auto; }
+      .hiw-inner { max-width: 800px; margin: 0 auto; padding: 60px 40px 120px; }
+      .hiw-inner h1 { font-size: 32px; font-weight: 700; color: var(--amber);
+        letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 8px;
+        text-shadow: 0 0 30px rgba(232, 154, 60, 0.3); }
+      .hiw-inner .lede { color: var(--text-dim); font-size: 13px;
+        letter-spacing: 0.05em; margin: 0 0 40px; line-height: 1.7; }
+      .hiw-inner section { margin: 40px 0; }
+      .hiw-inner h2 { font-size: 11px; color: var(--amber); letter-spacing: 0.25em;
+        text-transform: uppercase; font-weight: 700; margin: 0 0 16px;
+        padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+      .hiw-inner p { color: var(--text); font-size: 13px; line-height: 1.7;
+        margin: 0 0 16px; }
+      .hiw-inner strong { color: var(--amber); font-weight: 700; }
+      .hiw-inner code { background: var(--bg-elev); padding: 2px 6px;
+        border: 1px solid var(--border); font-size: 12px; color: var(--amber-hi); }
+      .hiw-inner ol, .hiw-inner ul { padding-left: 24px; margin: 0 0 16px; }
+      .hiw-inner li { margin: 10px 0; line-height: 1.7; }
+      .hiw-inner ol li strong { display: inline-block; min-width: 100px; }
+      .pipeline-diagram { display: grid; grid-template-columns: repeat(4, 1fr);
+        gap: 8px; margin: 20px 0 30px; }
+      .pipeline-step { padding: 14px 8px; border: 1px solid var(--border-strong);
+        text-align: center; font-size: 10px; letter-spacing: 0.15em;
+        text-transform: uppercase; color: var(--amber); font-weight: 700;
+        background: var(--bg-elev); position: relative; }
+      .pipeline-step::before { content: attr(data-num); position: absolute;
+        top: 4px; left: 6px; color: var(--text-faint); font-size: 9px; }
+      .pipeline-step .sub { display: block; margin-top: 4px;
+        color: var(--text-dim); font-size: 8px; font-weight: 400;
+        letter-spacing: 0.1em; }
+      .hiw-inner .footer-note { margin-top: 60px; padding-top: 24px;
+        border-top: 1px solid var(--border); color: var(--text-faint);
+        font-size: 11px; letter-spacing: 0.1em; }
+      .hiw-inner .footer-note a { color: var(--amber); }
     </style>
   </head>
   <body>
     <div id="app">
       <header>
-        <h1>Negative<span class="dot">.</span>Lab</h1>
+        <h1 id="nav-home">Negative<span class="dot">.</span>Lab</h1>
         <span class="status" id="status">Load a negative</span>
+        <nav>
+          <a id="nav-hiw">How it works</a>
+        </nav>
       </header>
-      <div class="main">
-        <div class="canvas-column">
-          <div class="canvas-area" id="drop">
-            <div class="empty" id="empty">
-              <strong>Drop a negative</strong>
-              <div>Camera RAW · JPEG · PNG · (multiple ok)</div>
-              <div class="sub">DNG · NEF · CR2/CR3 · ARW · RAF · ORF · RW2 · PEF</div>
-              <div class="sub" style="color:var(--text-faint)">HE* Nikon → convert to DNG first</div>
-            </div>
-            <input type="file" id="file" multiple accept=".dng,.nef,.cr2,.cr3,.crw,.arw,.raf,.orf,.rw2,.pef,.srw,.iiq,.3fr,.dcr,.mrw,image/jpeg,image/png,image/webp" />
-            <div class="canvas-wrap" id="canvas-wrap">
-              <canvas id="canvas"></canvas>
-              <div class="crop" id="crop">
-                <div class="crop-dim" id="dim-top"></div>
-                <div class="crop-dim" id="dim-bottom"></div>
-                <div class="crop-dim" id="dim-left"></div>
-                <div class="crop-dim" id="dim-right"></div>
-                <div class="crop-rect" id="crop-rect">
-                  <div class="crop-handle crop-h-nw" data-handle="nw"></div>
-                  <div class="crop-handle crop-h-ne" data-handle="ne"></div>
-                  <div class="crop-handle crop-h-sw" data-handle="sw"></div>
-                  <div class="crop-handle crop-h-se" data-handle="se"></div>
-                  <div class="crop-handle crop-h-n"  data-handle="n"></div>
-                  <div class="crop-handle crop-h-s"  data-handle="s"></div>
-                  <div class="crop-handle crop-h-w"  data-handle="w"></div>
-                  <div class="crop-handle crop-h-e"  data-handle="e"></div>
-                </div>
-              </div>
-            </div>
+
+      <!-- HERO / HOME VIEW -->
+      <div class="view hero active" id="view-hero">
+        <div class="film-edge">
+          <div class="edge-text">
+            <span class="brand">Negative Lab</span>
+            <span>Kodak Portra 400 · ISO 400</span>
+            <span>36 ▸ 37A</span>
           </div>
-          <div class="thumb-strip" id="thumb-strip">
-            <button class="thumb-add" id="thumb-add" title="Add more">+</button>
+          <div class="sprockets"></div>
+        </div>
+
+        <div class="film-frame" id="drop-hero">
+          <div class="frame-content">
+            <h1>Drop a negative</h1>
+            <p class="sub">Convert film scans right in your browser</p>
+            <p class="formats">RAW · JPEG · PNG · WebP</p>
+            <p class="formats" style="opacity:0.7">DNG · NEF · CR2 · CR3 · ARW · RAF · ORF · RW2 · PEF</p>
+            <button class="load-btn" id="btn-load">Select files</button>
+            <p class="note">HE* Nikon NEF → convert to DNG first · nothing uploaded anywhere</p>
           </div>
         </div>
 
-        <aside class="controls" id="controls" hidden>
-          <div class="section-label">Presets</div>
-          <div class="preset-grid" id="presets"></div>
-
-          <div class="section-label">Tone</div>
-          <div class="control">
-            <div class="control-header"><label>Contrast</label><span class="value" id="v-contrast">6.0</span></div>
-            <input type="range" id="s-contrast" min="1" max="15" step="0.1" value="6">
+        <div class="film-edge">
+          <div class="sprockets"></div>
+          <div class="edge-text bottom">
+            <span class="brand">Client-side · No server</span>
+            <span>Rust → WASM · WebGL2</span>
+            <span>37A ▸</span>
           </div>
-          <div class="control">
-            <div class="control-header"><label>Curves</label><span class="value" id="v-curves">1.00</span></div>
-            <input type="range" id="s-curves" min="0.4" max="2.5" step="0.02" value="1">
-          </div>
-          <div class="control">
-            <div class="control-header"><label>Saturation</label><span class="value" id="v-saturation">1.30</span></div>
-            <input type="range" id="s-saturation" min="0" max="2.5" step="0.05" value="1.3">
-          </div>
-          <div class="control">
-            <div class="control-header"><label>Sharpen</label><span class="value" id="v-sharpen">0.00</span></div>
-            <input type="range" id="s-sharpen" min="0" max="3" step="0.05" value="0">
-          </div>
-
-          <div class="section-label">Color</div>
-          <div class="control">
-            <div class="control-header"><label>Temperature</label><span class="value" id="v-temp">0.00</span></div>
-            <input type="range" id="s-temp" min="-1" max="1" step="0.01" value="0">
-          </div>
-          <div class="control">
-            <div class="control-header"><label>Tint</label><span class="value" id="v-tint">0.00</span></div>
-            <input type="range" id="s-tint" min="-1" max="1" step="0.01" value="0">
-          </div>
-          <div class="control">
-            <div class="control-header"><label>Shadow warmth</label><span class="value" id="v-shadow-warm">0.00</span></div>
-            <input type="range" id="s-shadow-warm" min="-1" max="1" step="0.01" value="0">
-          </div>
-          <div class="control">
-            <div class="control-header"><label>Highlight warmth</label><span class="value" id="v-highlight-warm">0.00</span></div>
-            <input type="range" id="s-highlight-warm" min="-1" max="1" step="0.01" value="0">
-          </div>
-
-          <div class="section-label">Levels</div>
-          <div class="control">
-            <div class="control-header"><label>Black point</label><span class="value" id="v-black">0.00</span></div>
-            <input type="range" id="s-black" min="0" max="0.5" step="0.005" value="0">
-          </div>
-          <div class="control">
-            <div class="control-header"><label>White point</label><span class="value" id="v-white">1.00</span></div>
-            <input type="range" id="s-white" min="0.5" max="1" step="0.005" value="1">
-          </div>
-
-          <div class="section-label">Geometry</div>
-          <div style="display:flex;gap:6px;margin-bottom:12px;">
-            <button id="orient-ccw" style="margin:0;padding:8px 0;flex:1;font-size:14px;">↺ 90°</button>
-            <button id="orient-cw"  style="margin:0;padding:8px 0;flex:1;font-size:14px;">↻ 90°</button>
-          </div>
-          <div class="control">
-            <div class="control-header"><label>Rotate fine</label><span class="value" id="v-rotate">0.0°</span></div>
-            <input type="range" id="s-rotate" min="-15" max="15" step="0.1" value="0">
-          </div>
-          <label class="check-row">
-            <input type="checkbox" id="s-lock32">
-            Lock crop to 3:2
-          </label>
-
-          <div class="section-label">Actions</div>
-          <button id="crop-apply" class="primary">Apply crop ↵</button>
-          <button id="crop-reset">Reset crop</button>
-          <button id="reset">Reset tone</button>
-          <button id="apply-all">Apply tone to all</button>
-          <button id="download" class="download">Download PNG</button>
-          <button id="download-all" class="download">Download all</button>
-          <button id="clear-session" style="margin-top:20px;">Clear session</button>
-        </aside>
+        </div>
       </div>
+
+      <!-- EDITOR VIEW -->
+      <div class="view editor" id="view-editor">
+        <div class="main">
+          <div class="canvas-column">
+            <div class="canvas-area" id="drop">
+              <div class="canvas-wrap" id="canvas-wrap">
+                <canvas id="canvas"></canvas>
+                <div class="crop" id="crop">
+                  <div class="crop-dim" id="dim-top"></div>
+                  <div class="crop-dim" id="dim-bottom"></div>
+                  <div class="crop-dim" id="dim-left"></div>
+                  <div class="crop-dim" id="dim-right"></div>
+                  <div class="crop-rect" id="crop-rect">
+                    <div class="crop-handle crop-h-nw" data-handle="nw"></div>
+                    <div class="crop-handle crop-h-ne" data-handle="ne"></div>
+                    <div class="crop-handle crop-h-sw" data-handle="sw"></div>
+                    <div class="crop-handle crop-h-se" data-handle="se"></div>
+                    <div class="crop-handle crop-h-n"  data-handle="n"></div>
+                    <div class="crop-handle crop-h-s"  data-handle="s"></div>
+                    <div class="crop-handle crop-h-w"  data-handle="w"></div>
+                    <div class="crop-handle crop-h-e"  data-handle="e"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="thumb-strip" id="thumb-strip">
+              <button class="thumb-add" id="thumb-add" title="Add more">+</button>
+            </div>
+          </div>
+
+          <aside class="controls" id="controls" hidden>
+            <div class="section-label">Presets</div>
+            <div class="preset-grid" id="presets"></div>
+
+            <div class="section-label">Tone</div>
+            <div class="control">
+              <div class="control-header"><label>Contrast</label><span class="value" id="v-contrast">6.0</span></div>
+              <input type="range" id="s-contrast" min="1" max="15" step="0.1" value="6">
+            </div>
+            <div class="control">
+              <div class="control-header"><label>Curves</label><span class="value" id="v-curves">1.00</span></div>
+              <input type="range" id="s-curves" min="0.4" max="2.5" step="0.02" value="1">
+            </div>
+            <div class="control">
+              <div class="control-header"><label>Saturation</label><span class="value" id="v-saturation">1.30</span></div>
+              <input type="range" id="s-saturation" min="0" max="2.5" step="0.05" value="1.3">
+            </div>
+            <div class="control">
+              <div class="control-header"><label>Sharpen</label><span class="value" id="v-sharpen">0.00</span></div>
+              <input type="range" id="s-sharpen" min="0" max="3" step="0.05" value="0">
+            </div>
+
+            <div class="section-label">Color</div>
+            <div class="control">
+              <div class="control-header"><label>Temperature</label><span class="value" id="v-temp">0.00</span></div>
+              <input type="range" id="s-temp" min="-1" max="1" step="0.01" value="0">
+            </div>
+            <div class="control">
+              <div class="control-header"><label>Tint</label><span class="value" id="v-tint">0.00</span></div>
+              <input type="range" id="s-tint" min="-1" max="1" step="0.01" value="0">
+            </div>
+            <div class="control">
+              <div class="control-header"><label>Shadow warmth</label><span class="value" id="v-shadow-warm">0.00</span></div>
+              <input type="range" id="s-shadow-warm" min="-1" max="1" step="0.01" value="0">
+            </div>
+            <div class="control">
+              <div class="control-header"><label>Highlight warmth</label><span class="value" id="v-highlight-warm">0.00</span></div>
+              <input type="range" id="s-highlight-warm" min="-1" max="1" step="0.01" value="0">
+            </div>
+
+            <div class="section-label">Levels</div>
+            <div class="control">
+              <div class="control-header"><label>Black point</label><span class="value" id="v-black">0.00</span></div>
+              <input type="range" id="s-black" min="0" max="0.5" step="0.005" value="0">
+            </div>
+            <div class="control">
+              <div class="control-header"><label>White point</label><span class="value" id="v-white">1.00</span></div>
+              <input type="range" id="s-white" min="0.5" max="1" step="0.005" value="1">
+            </div>
+
+            <div class="section-label">Geometry</div>
+            <div style="display:flex;gap:6px;margin-bottom:12px;">
+              <button id="orient-ccw" style="margin:0;padding:8px 0;flex:1;font-size:14px;">↺ 90°</button>
+              <button id="orient-cw"  style="margin:0;padding:8px 0;flex:1;font-size:14px;">↻ 90°</button>
+            </div>
+            <div class="control">
+              <div class="control-header"><label>Rotate fine</label><span class="value" id="v-rotate">0.0°</span></div>
+              <input type="range" id="s-rotate" min="-15" max="15" step="0.1" value="0">
+            </div>
+            <label class="check-row">
+              <input type="checkbox" id="s-lock32">
+              Lock crop to 3:2
+            </label>
+
+            <div class="section-label">Actions</div>
+            <button id="crop-apply" class="primary">Apply crop ↵</button>
+            <button id="crop-reset">Reset crop</button>
+            <button id="reset">Reset tone</button>
+            <button id="apply-all">Apply tone to all</button>
+            <button id="download" class="download">Download PNG</button>
+            <button id="download-all" class="download">Download all</button>
+            <button id="clear-session" style="margin-top:20px;">Clear session</button>
+          </aside>
+        </div>
+      </div>
+
+      <!-- HOW IT WORKS VIEW -->
+      <div class="view howitworks" id="view-hiw">
+        <div class="hiw-inner">
+          <h1>How it works</h1>
+          <p class="lede">
+            NEGATIVE.LAB is a browser-based film negative → positive converter.
+            You drop a scan of a film negative (camera RAW or JPEG); the app
+            demosaics it, inverts the density, removes the C41 orange mask,
+            and hands you a finished positive image — all locally, in-browser,
+            with no server touching your files.
+          </p>
+
+          <section>
+            <h2>Pipeline</h2>
+            <div class="pipeline-diagram">
+              <div class="pipeline-step" data-num="1">Decode<span class="sub">Rust → WASM</span></div>
+              <div class="pipeline-step" data-num="2">Invert<span class="sub">Log-space density</span></div>
+              <div class="pipeline-step" data-num="3">Adjust<span class="sub">WebGL2 shader</span></div>
+              <div class="pipeline-step" data-num="4">Export<span class="sub">Full-res PNG</span></div>
+            </div>
+            <ol>
+              <li><strong>Decode.</strong> A Rust crate compiled to WebAssembly parses the RAW file using <code>rawler</code>, then a bilinear Bayer demosaic converts the raw sensor data into linear RGB. JPEGs and PNGs go through the browser's native decoder + sRGB → linear conversion.</li>
+              <li><strong>Invert.</strong> Film response is logarithmic, so we compute density: <code>D = log(base) − log(pixel)</code> per channel. This removes the orange C41 mask <em>and</em> inverts tonality in one step. Naive <code>1 − pixel</code> or <code>base / pixel</code> in linear space always clips because every image pixel is darker than the rebate.</li>
+              <li><strong>Adjust.</strong> Per-channel auto-levels on density gives us auto white balance for free. Then a WebGL2 fragment shader applies your tone curve, saturation, split-toning, sharpening, crop, and rotation in a single pass. Every slider updates the image live at 60fps because it's all uniforms.</li>
+              <li><strong>Export.</strong> Download renders through the same shader at full crop resolution via a WebGL framebuffer, so what you see is exactly what you get.</li>
+            </ol>
+          </section>
+
+          <section>
+            <h2>Privacy</h2>
+            <p>Your files never leave your device. There is no server processing negatives; the site is 100% static assets served by a CDN. The Rust decoder runs in your browser via WebAssembly and the tone pipeline runs on your GPU. Your session persists in <code>IndexedDB</code> — again, local only.</p>
+          </section>
+
+          <section>
+            <h2>Supported formats</h2>
+            <p><strong>Camera RAW</strong> (decoded by rawler in WASM): DNG, NEF, CR2, CR3, CRW, ARW, RAF, ORF, RW2, PEF, SRW, IIQ, 3FR, DCR, MRW.</p>
+            <p><strong>Standard images</strong> (decoded by the browser): JPEG, PNG, WebP.</p>
+            <p>Not yet supported: Nikon HE / HE* NEFs. libraw hasn't reverse-engineered those compression formats yet. Workaround: run through Adobe's free <em>DNG Converter</em>, then drop the DNG here.</p>
+          </section>
+
+          <section>
+            <h2>Under the hood</h2>
+            <ul>
+              <li><strong>Rust</strong> — decoder crate compiled once for native (via <code>rsraw</code> + libraw) and again for WASM (via <code>rawler</code>).</li>
+              <li><strong>WebGL2</strong> — the whole tone/crop/rotate pipeline is one fragment shader. Sharpening samples the pipeline at 4 neighbours for a proper unsharp mask on the tone-mapped output.</li>
+              <li><strong>Vite + TypeScript</strong> — no framework, no SSR. This is a single-page app that doesn't need any of that.</li>
+              <li><strong>IndexedDB</strong> — persists the source file buffers and your per-frame settings; on reload we re-decode and restore.</li>
+              <li><strong>GitHub Actions</strong> — rebuilds the WASM automatically on every Rust change; Vercel redeploys the static site.</li>
+            </ul>
+          </section>
+
+          <section>
+            <h2>Presets</h2>
+            <p>Eight curated tone presets — Neutral, Portrait (warm Portra-like), Vivid (Ektar-like), Golden, Cinematic (teal/orange), Faded, Moody, Cool. Each one overrides only the tone and color params, not your crop or rotation. Layer them, then tune.</p>
+          </section>
+
+          <section>
+            <h2>Why not just Lightroom + NLP?</h2>
+            <p>You can. That workflow costs about $10/month for Lightroom plus ~$100 one-time for Negative Lab Pro. This tool does the same core job — decode, invert, apply a film-like look — for free, without installing anything, and works on Chromebooks and phones too.</p>
+            <p>The trade-off: no local adjustments, no full curves editor, no XMP round-tripping, no batch presets library. If you're editing a wedding shoot, use Lightroom. If you scanned a few rolls on a weekend and want positives to share, this is faster.</p>
+          </section>
+
+          <p class="footer-note">
+            Open source at <a href="https://github.com/henryfradley/film-negative-converter" target="_blank">github.com/henryfradley/film-negative-converter</a>
+          </p>
+        </div>
+      </div>
+
+      <!-- Shared file input -->
+      <input type="file" id="file" multiple accept=".dng,.nef,.cr2,.cr3,.crw,.arw,.raf,.orf,.rw2,.pef,.srw,.iiq,.3fr,.dcr,.mrw,image/jpeg,image/png,image/webp" />
     </div>
+
     <div class="loading" id="loading">
       <div class="loading-inner">
         <div class="loading-title"><span class="developing">Developing</span></div>

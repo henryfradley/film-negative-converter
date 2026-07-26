@@ -5,11 +5,29 @@ import { saveFrame, updateFrame, deleteFrame, loadAllFrames, clearAll, type Save
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const status      = $<HTMLSpanElement>('status');
-const drop        = $<HTMLDivElement>('drop');
+const drop        = $<HTMLDivElement>('drop');           // editor drop area
+const dropHero    = $<HTMLDivElement>('drop-hero');       // home film-frame drop area
 const file        = $<HTMLInputElement>('file');
-const empty       = $<HTMLDivElement>('empty');
 const wrap        = $<HTMLDivElement>('canvas-wrap');
 const canvas      = $<HTMLCanvasElement>('canvas');
+
+// Views
+const viewHero    = $<HTMLDivElement>('view-hero');
+const viewEditor  = $<HTMLDivElement>('view-editor');
+const viewHiw     = $<HTMLDivElement>('view-hiw');
+const navHome     = $<HTMLElement>('nav-home');
+const navHiw      = $<HTMLElement>('nav-hiw');
+const btnLoad     = $<HTMLButtonElement>('btn-load');
+
+type View = 'home' | 'editor' | 'hiw';
+let activeView: View = 'home';
+function setView(v: View) {
+  activeView = v;
+  viewHero.classList.toggle('active',   v === 'home');
+  viewEditor.classList.toggle('active', v === 'editor');
+  viewHiw.classList.toggle('active',    v === 'hiw');
+  navHiw.classList.toggle('active',     v === 'hiw');
+}
 const cropRect    = $<HTMLDivElement>('crop-rect');
 const dimTop      = $<HTMLDivElement>('dim-top');
 const dimBottom   = $<HTMLDivElement>('dim-bottom');
@@ -351,7 +369,7 @@ async function loadFiles(fileList: FileList | File[]) {
       placeholders[i].replaceWith(frame.thumbEl);
 
       if (frames.length === 1) {
-        empty.style.display = 'none';
+        setView('editor');
         wrap.classList.add('ready');
         controls.hidden = false;
         ensureRenderer();
@@ -399,7 +417,7 @@ async function restoreSaved() {
         { id: s.id, params: s.params, cropUV: s.cropUV, mode: s.mode });
       placeholders[i].replaceWith(frame.thumbEl);
       if (frames.length === 1) {
-        empty.style.display = 'none';
+        setView('editor');
         wrap.classList.add('ready');
         controls.hidden = false;
         ensureRenderer();
@@ -436,7 +454,7 @@ function removeFrame(id: number) {
   deleteFrame(id).catch(() => {});
   if (frames.length === 0) {
     currentIdx = -1;
-    empty.style.display = '';
+    setView('home');
     wrap.classList.remove('ready');
     thumbStrip.classList.remove('ready');
     controls.hidden = true;
@@ -702,20 +720,29 @@ btnClear.addEventListener('click', async () => {
   for (const id of ids) removeFrame(id);
 });
 
+// ── nav ───────────────────────────────────────────────────────────────
+navHome.addEventListener('click', () => setView(frames.length > 0 ? 'editor' : 'home'));
+navHiw.addEventListener('click',  () => setView('hiw'));
+btnLoad.addEventListener('click', () => file.click());
+
 // ── file input + drag/drop ────────────────────────────────────────────
 file.addEventListener('change', () => {
   if (file.files && file.files.length) loadFiles(file.files).catch(err => setStatus(`error: ${err}`));
   file.value = ''; // allow re-selecting same file
 });
-empty.addEventListener('click', () => file.click());
 thumbAdd.addEventListener('click', () => file.click());
-drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('hover'); });
-drop.addEventListener('dragleave', () => drop.classList.remove('hover'));
-drop.addEventListener('drop', e => {
-  e.preventDefault();
-  drop.classList.remove('hover');
-  const list = e.dataTransfer?.files;
-  if (list && list.length) loadFiles(list).catch(err => setStatus(`error: ${err}`));
+dropHero.addEventListener('click', () => file.click());
+
+// Wire drop handlers on BOTH the hero film-frame and the editor canvas area
+[drop, dropHero].forEach(zone => {
+  zone.addEventListener('dragover',  e => { e.preventDefault(); zone.classList.add('hover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('hover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault();
+    zone.classList.remove('hover');
+    const list = e.dataTransfer?.files;
+    if (list && list.length) loadFiles(list).catch(err => setStatus(`error: ${err}`));
+  });
 });
 
 // Re-fit canvas display when the window changes so the crop overlay always
