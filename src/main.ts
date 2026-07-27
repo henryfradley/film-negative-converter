@@ -128,6 +128,7 @@ const btnDownload   = $<HTMLButtonElement>('download');
 const btnDownloadAll= $<HTMLButtonElement>('download-all');
 const btnOrientCw   = $<HTMLButtonElement>('orient-cw');
 const btnOrientCcw  = $<HTMLButtonElement>('orient-ccw');
+const btnFlipH      = $<HTMLButtonElement>('flip-h');
 
 const loading       = $<HTMLDivElement>('loading');
 const loadingFile   = $<HTMLDivElement>('loading-file');
@@ -193,6 +194,7 @@ function paramsFromAuto(a: WorkerOut, cropUV: [number, number, number, number]):
     sharpen: 0,
     curves: 1.0,
     orient: 0,
+    flipH: false,
     temp: 0,
     tint: 0,
     shadowWarm: 0,
@@ -600,6 +602,14 @@ function rotate90(dir: 1 | -1) {
 }
 btnOrientCw.addEventListener('click',  () => rotate90( 1));
 btnOrientCcw.addEventListener('click', () => rotate90(-1));
+btnFlipH.addEventListener('click', () => {
+  const f = current(); if (!f) return;
+  f.params.flipH = !f.params.flipH;
+  btnFlipH.classList.toggle('active', f.params.flipH);
+  render();
+  renderThumb(f);
+  scheduleSave(f);
+});
 document.addEventListener('keydown', e => {
   const f = current(); if (!f) return;
   const tag = (e.target as HTMLElement)?.tagName;

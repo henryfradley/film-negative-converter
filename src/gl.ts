@@ -32,6 +32,7 @@ uniform vec2  u_src_size; // texture w,h for aspect-correct rotation
 uniform float u_sharpen; // 0 = off; 1 = normal unsharp mask; up to ~3
 uniform float u_curves;  // midtone gamma: <1 darkens midtones, >1 lifts them
 uniform int   u_orient;  // 0, 1, 2, 3: number of 90° CW rotations applied to display
+uniform int   u_flip_h;  // 1 = mirror horizontally, 0 = no flip
 uniform float u_temp;    // −1 cool (blue) … +1 warm (orange)
 uniform float u_tint;    // −1 green … +1 magenta
 uniform float u_shadow_warm;    // −1 cool shadows … +1 warm shadows
@@ -117,19 +118,21 @@ vec2 transformUV(vec2 vuv) {
 }
 
 void main() {
-  vec2 uv = transformUV(v_uv);
+  // Horizontal flip is applied in DISPLAY space (before anything else),
+  // so mirroring stays intuitive relative to what the user sees regardless
+  // of rotation/crop/orient.
+  vec2 vuv = (u_flip_h == 1) ? vec2(1.0 - v_uv.x, v_uv.y) : v_uv;
+  vec2 uv = transformUV(vuv);
   vec3 col = tone(uv);
 
   if (u_sharpen > 0.001) {
-    // Unsharp mask on the tone-mapped output: sample the pipeline at 4
-    // neighbouring UVs (2-texel radius so it's visible at fit-to-screen too).
     vec2 px = 2.0 / u_src_size;
     vec3 blur = 0.2 * (
       col +
-      tone(transformUV(v_uv + vec2( px.x, 0.0))) +
-      tone(transformUV(v_uv + vec2(-px.x, 0.0))) +
-      tone(transformUV(v_uv + vec2(0.0,  px.y))) +
-      tone(transformUV(v_uv + vec2(0.0, -px.y)))
+      tone(transformUV(vuv + vec2( px.x, 0.0))) +
+      tone(transformUV(vuv + vec2(-px.x, 0.0))) +
+      tone(transformUV(vuv + vec2(0.0,  px.y))) +
+      tone(transformUV(vuv + vec2(0.0, -px.y)))
     );
     col = clamp(col + (col - blur) * u_sharpen, 0.0, 1.0);
   }
@@ -151,6 +154,7 @@ export type StretchParams = {
   sharpen: number;
   curves: number; // gamma-style midtone; 1.0 = neutral
   orient: 0 | 1 | 2 | 3; // number of 90° CW rotations (portrait handling)
+  flipH: boolean;         // horizontal mirror
   temp: number;           // −1 cool … +1 warm
   tint: number;           // −1 green … +1 magenta
   shadowWarm: number;     // −1 cool shadows … +1 warm shadows
@@ -178,7 +182,7 @@ export class Renderer {
     for (const name of ['u_negative', 'u_log_base', 'u_density_lo', 'u_density_hi',
                         'u_s_slope', 'u_saturation', 'u_bw_lo', 'u_bw_hi',
                         'u_crop_min', 'u_crop_max', 'u_rotate', 'u_src_size',
-                        'u_sharpen', 'u_curves', 'u_orient',
+                        'u_sharpen', 'u_curves', 'u_orient', 'u_flip_h',
                         'u_temp', 'u_tint', 'u_shadow_warm', 'u_highlight_warm']) {
       const loc = gl.getUniformLocation(this.program, name);
       if (!loc) throw new Error(`missing uniform ${name}`);
@@ -370,6 +374,7 @@ export class Renderer {
     gl.uniform1f(uni.u_sharpen, p.sharpen ?? 0);
     gl.uniform1f(uni.u_curves, p.curves ?? 1.0);
     gl.uniform1i(uni.u_orient, (p.orient ?? 0) as number);
+    gl.uniform1i(uni.u_flip_h, p.flipH ? 1 : 0);
     gl.uniform1f(uni.u_temp, p.temp ?? 0);
     gl.uniform1f(uni.u_tint, p.tint ?? 0);
     gl.uniform1f(uni.u_shadow_warm, p.shadowWarm ?? 0);

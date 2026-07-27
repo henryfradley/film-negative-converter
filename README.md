@@ -1,4 +1,4 @@
-# NEGATIVE.LAB
+# Negative Converter
 
 A browser-based film negative → positive converter. Drop a camera-scanned RAW, drag a crop, tweak the tone, download a positive. Nothing leaves your machine.
 

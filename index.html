@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NEGATIVE.LAB</title>
+    <title>Negative Converter</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
@@ -116,42 +116,53 @@
         content: ''; position: absolute; inset: 0; pointer-events: none;
         opacity: 0.35; mix-blend-mode: overlay;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.4'/%3E%3C/svg%3E"); }
-      /* Two-column layout: text left, demo images stacked right */
-      .frame-content { position: relative; z-index: 2; padding: 60px 70px;
+      /* Two-column layout: text left, demo images stacked right.
+         Images are constrained by BOTH viewport width and height so they
+         don't overflow the film-frame at any typical browser size (incl.
+         a laptop with dev tools open). */
+      .frame-content { position: relative; z-index: 2;
+        padding: clamp(24px, 4vh, 60px) clamp(24px, 5vw, 70px);
         display: grid; grid-template-columns: minmax(0, 1fr) auto;
-        gap: 80px; align-items: center; text-align: left;
+        gap: clamp(24px, 5vw, 80px); align-items: center; text-align: left;
         max-width: 1400px; width: 100%; }
       .col-left { min-width: 0; }
       .col-left h1 { font-family: 'Space Mono', monospace;
-        font-size: clamp(32px, 4.5vw, 60px); font-weight: 700;
-        color: var(--amber); letter-spacing: 0.14em; margin: 0 0 24px;
+        font-size: clamp(28px, 4vw + 0.5rem, 60px); font-weight: 700;
+        color: var(--amber); letter-spacing: 0.14em; margin: 0 0 20px;
         text-transform: uppercase; line-height: 1;
         text-shadow: 0 0 30px rgba(var(--amber-rgb), 0.3); }
-      .col-left .sub { color: var(--text-dim); font-size: 13px;
+      .col-left .sub { color: var(--text-dim);
+        font-size: clamp(11px, 1vw, 13px);
         letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 8px; }
-      .col-left .formats { color: var(--text-faint); font-size: 11px;
-        margin-top: 24px; line-height: 1.8; }
+      .col-left .formats { color: var(--text-faint);
+        font-size: clamp(10px, 0.85vw, 11px);
+        margin-top: clamp(16px, 2vh, 24px); line-height: 1.8; }
       .col-left .note { color: var(--text-faint); font-size: 10px;
-        margin-top: 20px; opacity: 0.7; max-width: 380px; }
-      .col-left .load-btn { display: inline-block; margin-top: 28px;
+        margin-top: 16px; opacity: 0.7; max-width: 380px; }
+      .col-left .load-btn { display: inline-block;
+        margin-top: clamp(16px, 3vh, 28px);
         padding: 14px 28px; border: 1px solid var(--amber); color: var(--amber);
         font-size: 12px; letter-spacing: 0.2em; text-transform: uppercase;
         font-weight: 700; cursor: pointer; transition: all 0.15s;
         background: transparent; font-family: inherit; }
       .col-left .load-btn:hover { background: var(--amber); color: var(--bg); }
 
-      /* Before/after demo — big stacked images on the right */
+      /* Before/after demo — big stacked images on the right.
+         min() of (viewport width proportion, viewport height proportion, px cap)
+         so the pair fits in ~50vh worth of vertical space. */
       .col-right { display: flex; flex-direction: column; align-items: center;
-        gap: 14px; flex-shrink: 0; }
-      .col-right figure { margin: 0; text-align: center; width: min(38vw, 460px); }
+        gap: 10px; flex-shrink: 0; }
+      .col-right figure { margin: 0; text-align: center;
+        width: min(35vw, 40vh, 460px); }
       .col-right img { display: block; width: 100%; height: auto;
         aspect-ratio: 3 / 2; object-fit: cover;
         border: 1px solid var(--border-strong);
         box-shadow: 0 8px 40px rgba(var(--black-rgb), 0.55); }
-      .col-right figcaption { margin-top: 8px; font-size: 10px;
+      .col-right figcaption { margin-top: 6px; font-size: 10px;
         letter-spacing: 0.25em; text-transform: uppercase;
         color: var(--text-dim); font-weight: 700; }
-      .demo-arrow { font-size: 34px; color: var(--amber);
+      .demo-arrow { font-size: clamp(20px, 2vw + 0.5rem, 34px);
+        color: var(--amber);
         text-shadow: 0 0 16px rgba(var(--amber-rgb), 0.7);
         line-height: 1; }
 
@@ -267,6 +278,8 @@
       button:disabled { color: var(--text-faint); cursor: not-allowed; }
       button.primary { border-color: var(--amber); color: var(--amber); }
       button.primary:hover:not(:disabled) { background: var(--amber); color: var(--bg); }
+      button.active { border-color: var(--amber); color: var(--amber);
+        background: rgba(var(--amber-rgb), 0.08); }
       button.download { border-color: var(--red); color: var(--red); margin-top: 14px; }
       button.download:hover:not(:disabled) { background: var(--red);
         color: var(--text); border-color: var(--red); }
@@ -388,6 +401,21 @@
         font-size: 11px; letter-spacing: 0.1em; }
       .hiw-inner .footer-note a { color: var(--amber); }
 
+      /* ── very short viewports (dev tools open, small laptops) ──── */
+      /* When there's not enough vertical room to safely stack two images
+         + arrow in the right column, collapse to single-column arrangement
+         so nothing overflows the film frame. */
+      @media (max-height: 720px) and (min-width: 769px) {
+        .frame-content { grid-template-columns: minmax(0, 1fr);
+          gap: 24px; padding: 20px 40px; }
+        .col-right { flex-direction: row; gap: 14px; }
+        .col-right figure { width: min(22vw, 260px); }
+        .demo-arrow { transform: rotate(-90deg); }
+        .col-left h1 { margin-bottom: 12px; }
+        .col-left .formats, .col-left .note { display: none; }
+        .col-left .load-btn { margin-top: 14px; }
+      }
+
       /* ── mobile / small screens ──────────────────────────────────── */
       @media (max-width: 768px) {
         header { padding: 10px 12px; gap: 10px; flex-wrap: wrap; }
@@ -427,7 +455,7 @@
   <body>
     <div id="app">
       <header>
-        <h1 id="nav-home">Negative<span class="dot">.</span>Lab</h1>
+        <h1 id="nav-home">Negative<span class="dot"> · </span>Converter</h1>
         <span class="status" id="status">Load a negative</span>
         <nav>
           <a id="nav-hiw">How it works</a>
@@ -550,10 +578,11 @@
             </div>
 
             <div class="section-label">Geometry</div>
-            <div style="display:flex;gap:6px;margin-bottom:12px;">
+            <div style="display:flex;gap:6px;margin-bottom:6px;">
               <button id="orient-ccw" style="margin:0;padding:8px 0;flex:1;font-size:14px;">↺ 90°</button>
               <button id="orient-cw"  style="margin:0;padding:8px 0;flex:1;font-size:14px;">↻ 90°</button>
             </div>
+            <button id="flip-h" style="margin-bottom:12px;">⇋ Flip horizontal</button>
             <div class="control">
               <div class="control-header"><label>Rotate fine</label><span class="value" id="v-rotate">0.0°</span></div>
               <input type="range" id="s-rotate" min="-15" max="15" step="0.1" value="0">
@@ -580,7 +609,7 @@
         <div class="hiw-inner">
           <h1>How it works</h1>
           <p class="lede">
-            NEGATIVE.LAB is a browser-based film negative → positive converter.
+            Negative Converter is a browser-based film negative → positive converter.
             You drop a scan of a film negative (camera RAW or JPEG); the app
             demosaics it, inverts the density, removes the C41 orange mask,
             and hands you a finished positive image — all locally, in-browser,
