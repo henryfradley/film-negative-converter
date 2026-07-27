@@ -306,6 +306,24 @@
       .loading-count { font-size: 10px; color: var(--text-dim);
         letter-spacing: 0.2em; margin-top: 14px; text-transform: uppercase; }
 
+      /* ── error toast ─────────────────────────────────────────────── */
+      .toast { position: fixed; bottom: 24px; left: 50%; z-index: 200;
+        transform: translateX(-50%) translateY(120%);
+        min-width: 280px; max-width: 90vw; padding: 12px 16px;
+        background: var(--bg-elev); border: 1px solid var(--red);
+        color: var(--text); font-size: 12px; letter-spacing: 0.05em;
+        box-shadow: 0 8px 32px rgba(var(--black-rgb), 0.5);
+        transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+        display: flex; align-items: flex-start; gap: 12px; }
+      .toast.show { transform: translateX(-50%) translateY(0); }
+      .toast .toast-icon { color: var(--red); font-weight: 700;
+        font-size: 14px; flex-shrink: 0; }
+      .toast .toast-body { flex: 1; word-break: break-word; }
+      .toast .toast-close { background: transparent; border: none;
+        color: var(--text-dim); cursor: pointer; padding: 0; margin: 0;
+        font-size: 14px; letter-spacing: 0; width: auto; }
+      .toast .toast-close:hover { color: var(--text); background: transparent; }
+
       /* Thumbnail placeholder (pre-decode) */
       .thumb.loading { border-color: var(--amber-dim);
         display: flex; align-items: center; justify-content: center; }
@@ -351,6 +369,40 @@
         border-top: 1px solid var(--border); color: var(--text-faint);
         font-size: 11px; letter-spacing: 0.1em; }
       .hiw-inner .footer-note a { color: var(--amber); }
+
+      /* ── mobile / small screens ──────────────────────────────────── */
+      @media (max-width: 768px) {
+        header { padding: 10px 12px; gap: 10px; flex-wrap: wrap; }
+        header h1 { font-size: 12px; }
+        header .status { font-size: 10px; }
+        header nav a { padding: 4px 8px; font-size: 10px; }
+
+        .editor .main { flex-direction: column; }
+        aside.controls { width: 100%; height: auto; max-height: 45vh;
+          border-left: none; border-top: 1px solid var(--border);
+          padding: 14px 12px; }
+        .canvas-area { padding: 12px; }
+        .thumb-strip { height: 90px; padding: 8px 12px 12px; }
+        .thumb { width: 90px; height: 60px; }
+        .thumb-add { width: 60px; height: 60px; }
+
+        /* Frame content on hero */
+        .frame-content { padding: 24px; }
+        .frame-content h1 { font-size: 28px; letter-spacing: 0.1em; }
+        .frame-content .formats { font-size: 9px; letter-spacing: 0.1em; }
+        .sprockets { height: 30px;
+          -webkit-mask-size: 48px 30px; mask-size: 48px 30px; }
+        .edge-text { padding: 6px 12px 3px; font-size: 8px;
+          letter-spacing: 0.15em; gap: 8px; }
+        .edge-text.bottom { padding: 3px 12px 6px; }
+        .edge-text span { overflow: hidden; text-overflow: ellipsis;
+          white-space: nowrap; }
+
+        /* How it works */
+        .hiw-inner { padding: 30px 20px 80px; }
+        .hiw-inner h1 { font-size: 22px; }
+        .pipeline-diagram { grid-template-columns: 1fr 1fr; }
+      }
     </style>
   </head>
   <body>
@@ -580,6 +632,12 @@
         <div class="loading-bar"><div class="loading-bar-fill" id="loading-bar-fill" style="width:0"></div></div>
         <div class="loading-count" id="loading-count">&nbsp;</div>
       </div>
+    </div>
+
+    <div class="toast" id="toast" role="alert" aria-live="polite">
+      <span class="toast-icon">!</span>
+      <span class="toast-body" id="toast-body"></span>
+      <button class="toast-close" id="toast-close" aria-label="Dismiss">×</button>
     </div>
     <script type="module" src="/src/main.ts"></script>
   </body>

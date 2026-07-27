@@ -2,6 +2,16 @@ import { Renderer, type StretchParams } from './gl';
 import type { WorkerOut } from './worker';
 import { saveFrame, updateFrame, deleteFrame, loadAllFrames, clearAll, type SavedFrame } from './db';
 
+/// Keys of StretchParams whose value is EXACTLY `number` (not a numeric union
+/// like `orient: 0 | 1 | 2 | 3`, not a tuple like `cropMin`). Slider bindings
+/// and preset application both need this — they assign plain floats.
+type NumericParamKey = {
+  [K in keyof StretchParams]:
+    number extends StretchParams[K]
+      ? (StretchParams[K] extends number ? K : never)
+      : never;
+}[keyof StretchParams];
+
 const $ = <T extends HTMLElement>(id: string) => document.getElementById(id) as T;
 
 const status      = $<HTMLSpanElement>('status');
@@ -28,6 +38,22 @@ function setView(v: View) {
   viewHiw.classList.toggle('active',    v === 'hiw');
   navHiw.classList.toggle('active',     v === 'hiw');
 }
+
+// ── error toast ───────────────────────────────────────────────────────
+const toast     = $<HTMLDivElement>('toast');
+const toastBody = $<HTMLSpanElement>('toast-body');
+const toastClose = $<HTMLButtonElement>('toast-close');
+let toastTimer: number | null = null;
+function showError(msg: string, ms = 6000) {
+  toastBody.textContent = msg;
+  toast.classList.add('show');
+  if (toastTimer) clearTimeout(toastTimer);
+  if (ms > 0) toastTimer = window.setTimeout(() => toast.classList.remove('show'), ms);
+}
+toastClose.addEventListener('click', () => {
+  toast.classList.remove('show');
+  if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
+});
 const cropRect    = $<HTMLDivElement>('crop-rect');
 const dimTop      = $<HTMLDivElement>('dim-top');
 const dimBottom   = $<HTMLDivElement>('dim-bottom');
@@ -294,21 +320,23 @@ function savePixels() {
   return { width: f.width, height: f.height, pixels: f.pixels };
 }
 
-function createThumbEl(frame: Frame): HTMLDivElement {
+/// Takes primitives (id, name, canvas) rather than a full Frame so we can
+/// build the thumb element BEFORE the Frame object exists — avoids the
+/// `thumbEl: null as any` two-phase construction hack.
+function createThumbEl(
+  id: number, name: string, thumbCanvas: HTMLCanvasElement,
+): HTMLDivElement {
   const div = document.createElement('div');
   div.className = 'thumb';
-  div.title = frame.name;
-  div.appendChild(frame.thumbCanvas);
+  div.title = name;
+  div.appendChild(thumbCanvas);
   const x = document.createElement('button');
   x.className = 'thumb-x';
   x.textContent = '×';
-  x.addEventListener('click', e => {
-    e.stopPropagation();
-    removeFrame(frame.id);
-  });
+  x.addEventListener('click', e => { e.stopPropagation(); removeFrame(id); });
   div.appendChild(x);
   div.addEventListener('click', () => {
-    const i = frames.findIndex(fr => fr.id === frame.id);
+    const i = frames.findIndex(fr => fr.id === id);
     if (i >= 0) switchTo(i);
   });
   return div;
@@ -328,9 +356,11 @@ async function addFrameFromBuffer(
 ): Promise<Frame> {
   const auto = await decodeBuffer(buffer, name, type);
   const cropUV = saved?.cropUV ?? [0.05, 0.05, 0.95, 0.95];
+  const id = saved?.id ?? nextId++;
+  if (saved?.id != null && saved.id >= nextId) nextId = saved.id + 1;
+  const thumbCanvas = document.createElement('canvas');
   const frame: Frame = {
-    id: saved?.id ?? nextId++,
-    name,
+    id, name,
     width: auto.width,
     height: auto.height,
     pixels: auto.pixels,
@@ -338,11 +368,9 @@ async function addFrameFromBuffer(
     params: saved?.params ?? paramsFromAuto(auto, cropUV),
     cropUV,
     mode: saved?.mode ?? 'edit',
-    thumbCanvas: document.createElement('canvas'),
-    thumbEl: null as any,
+    thumbCanvas,
+    thumbEl: createThumbEl(id, name, thumbCanvas),
   };
-  if (saved?.id != null && saved.id >= nextId) nextId = saved.id + 1;
-  frame.thumbEl = createThumbEl(frame);
   frames.push(frame);
   return frame;
 }
@@ -385,7 +413,7 @@ async function loadFiles(fileList: FileList | File[]) {
       }).catch(err => console.warn('[db] save failed:', err));
     } catch (err) {
       placeholders[i].remove();
-      setStatus(`error on ${f.name}: ${err}`);
+      showError(`Couldn't decode ${f.name}: ${err instanceof Error ? err.message : err}`);
     }
     showLoading(f.name, i + 1, list.length);
   }
@@ -471,10 +499,10 @@ function clearPresetActive() {
   presetsEl?.querySelectorAll<HTMLButtonElement>('.preset-btn.active')
     .forEach(b => b.classList.remove('active'));
 }
-const bind = (input: HTMLInputElement, k: keyof StretchParams) => {
+const bind = (input: HTMLInputElement, k: NumericParamKey) => {
   input.addEventListener('input', () => {
     const f = current(); if (!f) return;
-    (f.params as any)[k] = parseFloat(input.value);
+    f.params[k] = parseFloat(input.value);
     updateValueLabels(); render();
     clearPresetActive();
     scheduleSave(f);
@@ -493,13 +521,14 @@ function buildPresets() {
     presetsEl.appendChild(btn);
   });
 }
+const PRESET_KEYS: PresetKey[] = ['sSlope', 'saturation', 'curves', 'sharpen',
+  'temp', 'tint', 'shadowWarm', 'highlightWarm'];
+
 function applyPreset(p: Preset) {
   const f = current(); if (!f) return;
-  const keys: PresetKey[] = ['sSlope', 'saturation', 'curves', 'sharpen',
-    'temp', 'tint', 'shadowWarm', 'highlightWarm'];
-  for (const k of keys) {
-    const v = (p as any)[k];
-    if (v !== undefined) (f.params as any)[k] = v;
+  for (const k of PRESET_KEYS) {
+    const v = p[k];
+    if (v !== undefined) f.params[k] = v;
   }
   updateSlidersFromParams(f.params);
   render();
@@ -541,13 +570,14 @@ btnCropApply.addEventListener('click', () => {
   const f = current(); if (!f) return;
   setMode(f.mode === 'edit' ? 'preview' : 'edit');
 });
+const APPLY_ALL_KEYS: NumericParamKey[] = ['sSlope', 'saturation', 'curves', 'sharpen',
+  'bwLo', 'bwHi', 'rotate', 'temp', 'tint', 'shadowWarm', 'highlightWarm'];
+
 btnApplyAll.addEventListener('click', () => {
   const f = current(); if (!f) return;
-  const keys: (keyof StretchParams)[] = ['sSlope', 'saturation', 'curves', 'sharpen',
-    'bwLo', 'bwHi', 'rotate', 'temp', 'tint', 'shadowWarm', 'highlightWarm'];
   for (const other of frames) {
     if (other.id === f.id) continue;
-    for (const k of keys) (other.params as any)[k] = (f.params as any)[k];
+    for (const k of APPLY_ALL_KEYS) other.params[k] = f.params[k];
     renderThumb(other);
     scheduleSave(other);
   }
@@ -587,6 +617,8 @@ btnDownload.addEventListener('click', async () => {
   try {
     const blob = await renderer.renderToPng(f.params);
     triggerDownload(blob, f.name);
+  } catch (err) {
+    showError(`Export failed: ${err instanceof Error ? err.message : err}`);
   } finally {
     btnDownload.disabled = false; btnDownload.textContent = 'Download PNG';
   }
@@ -606,6 +638,8 @@ btnDownloadAll.addEventListener('click', async () => {
       await new Promise(r => setTimeout(r, 100)); // browser breather between downloads
     }
     showLoading('', frames.length, frames.length, 'EXPORTING');
+  } catch (err) {
+    showError(`Batch export failed: ${err instanceof Error ? err.message : err}`);
   } finally {
     switchTo(savedIdx);
     hideLoading();
@@ -727,7 +761,7 @@ btnLoad.addEventListener('click', () => file.click());
 
 // ── file input + drag/drop ────────────────────────────────────────────
 file.addEventListener('change', () => {
-  if (file.files && file.files.length) loadFiles(file.files).catch(err => setStatus(`error: ${err}`));
+  if (file.files && file.files.length) loadFiles(file.files).catch(err => showError(`Load failed: ${err instanceof Error ? err.message : err}`));
   file.value = ''; // allow re-selecting same file
 });
 thumbAdd.addEventListener('click', () => file.click());
@@ -741,7 +775,7 @@ dropHero.addEventListener('click', () => file.click());
     e.preventDefault();
     zone.classList.remove('hover');
     const list = e.dataTransfer?.files;
-    if (list && list.length) loadFiles(list).catch(err => setStatus(`error: ${err}`));
+    if (list && list.length) loadFiles(list).catch(err => showError(`Load failed: ${err instanceof Error ? err.message : err}`));
   });
 });
 

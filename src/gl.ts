@@ -277,27 +277,33 @@ export class Renderer {
 
   /// Render at an arbitrary size to an offscreen framebuffer, return the raw
   /// RGBA8 pixel buffer (Y-up per WebGL convention). Callers convert as needed.
+  /// Resources are always released even if `drawTo` throws.
   private renderOffscreen(w: number, h: number, p: StretchParams): Uint8Array {
     const { gl } = this;
     const fbTex = gl.createTexture()!;
-    gl.bindTexture(gl.TEXTURE_2D, fbTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+    const fbo   = gl.createFramebuffer()!;
+    try {
+      gl.bindTexture(gl.TEXTURE_2D, fbTex);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
-    const fbo = gl.createFramebuffer()!;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTex, 0);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTex, 0);
+      const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+      if (status !== gl.FRAMEBUFFER_COMPLETE) {
+        throw new Error(`FBO incomplete: 0x${status.toString(16)}`);
+      }
 
-    this.drawTo(w, h, p, fbo);
-
-    const raw = new Uint8Array(w * h * 4);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, raw);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.deleteFramebuffer(fbo);
-    gl.deleteTexture(fbTex);
-    return raw;
+      this.drawTo(w, h, p, fbo);
+      const raw = new Uint8Array(w * h * 4);
+      gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, raw);
+      return raw;
+    } finally {
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.deleteFramebuffer(fbo);
+      gl.deleteTexture(fbTex);
+    }
   }
 
   /// Render a thumbnail into a target canvas (fully renders inversion pipeline).
@@ -318,35 +324,12 @@ export class Renderer {
 
   /// Render at full crop resolution to a framebuffer, read pixels, return PNG Blob.
   async renderToPng(p: StretchParams): Promise<Blob> {
-    const { gl } = this;
     const [effW, effH] = this.effectiveSize(p);
     const w = Math.max(1, Math.round((p.cropMax[0] - p.cropMin[0]) * effW));
     const h = Math.max(1, Math.round((p.cropMax[1] - p.cropMin[1]) * effH));
+    const raw = this.renderOffscreen(w, h, p);
 
-    const fbTex = gl.createTexture()!;
-    gl.bindTexture(gl.TEXTURE_2D, fbTex);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA8, w, h, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-
-    const fbo = gl.createFramebuffer()!;
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, fbTex, 0);
-    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (status !== gl.FRAMEBUFFER_COMPLETE) {
-      throw new Error(`FBO incomplete: 0x${status.toString(16)}`);
-    }
-
-    this.drawTo(w, h, p, fbo);
-
-    const raw = new Uint8Array(w * h * 4);
-    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, raw);
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-    gl.deleteFramebuffer(fbo);
-    gl.deleteTexture(fbTex);
-
-    // Restore normal display
+    // Restore normal display (offscreen render bound the FBO)
     this.render(p);
 
     // Flip Y (readPixels is bottom-first) into an ImageData for canvas
