@@ -432,18 +432,34 @@
         .thumb { width: 90px; height: 60px; }
         .thumb-add { width: 60px; height: 60px; }
 
-        /* Frame content on hero — single column stack on mobile */
-        .frame-content { grid-template-columns: 1fr; gap: 32px;
-          padding: 30px 20px; text-align: center; }
+        /* Frame content on hero — compact single-column stack.
+           Two demo images side-by-side (small) with a rotated arrow so
+           the whole hero fits on a phone without needing to scroll.
+           Hero itself gets overflow-y:auto as a safety net for very
+           small phones or landscape-mobile weirdness. */
+        .hero { overflow-y: auto; }
+        .film-frame { min-height: 0; }
+        .frame-content { grid-template-columns: 1fr; gap: 20px;
+          padding: 24px 18px; text-align: center; }
         .col-left { text-align: center; }
-        .col-left h1 { font-size: 32px; letter-spacing: 0.1em;
-          text-align: center; }
-        .col-left .note, .col-left .formats { text-align: center; }
-        .col-left .note { max-width: none; }
-        .col-right figure { width: min(80vw, 340px); }
-        .demo-arrow { font-size: 24px; }
-        .sprockets { height: 30px;
-          -webkit-mask-size: 48px 30px; mask-size: 48px 30px; }
+        .col-left h1 { font-size: clamp(26px, 8vw, 36px);
+          letter-spacing: 0.08em; text-align: center;
+          margin-bottom: 12px; line-height: 1.05; }
+        .col-left .sub { font-size: 10px; letter-spacing: 0.12em; }
+        .col-left .formats { text-align: center; font-size: 9px;
+          margin-top: 14px; letter-spacing: 0.1em; }
+        .col-left .note { text-align: center; max-width: none;
+          font-size: 9px; margin-top: 10px; }
+        .col-left .load-btn { margin-top: 14px; padding: 12px 24px;
+          font-size: 11px; }
+
+        .col-right { flex-direction: row; gap: 10px; align-items: center; }
+        .col-right figure { width: min(38vw, 200px); }
+        .col-right figcaption { font-size: 8px; margin-top: 4px; }
+        .demo-arrow { transform: rotate(-90deg); font-size: 20px; }
+
+        .sprockets { height: 26px;
+          -webkit-mask-size: 44px 26px; mask-size: 44px 26px; }
 
         /* How it works */
         .hiw-inner { padding: 30px 20px 80px; }
