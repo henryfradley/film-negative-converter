@@ -1,6 +1,8 @@
 import { Renderer, type StretchParams } from './gl';
 import type { WorkerOut } from './worker';
 import { saveFrame, updateFrame, deleteFrame, loadAllFrames, clearAll, type SavedFrame } from './db';
+import { PRESETS, PRESET_KEYS, applyPresetToParams, type Preset } from './presets';
+import { installCropDrag, type CropUV } from './crop';
 
 /// Keys of StretchParams whose value is EXACTLY `number` (not a numeric union
 /// like `orient: 0 | 1 | 2 | 3`, not a tuple like `cropMin`). Slider bindings
@@ -111,33 +113,6 @@ function showLoading(fileName: string, current: number, total: number, subLabel?
 function hideLoading() {
   loading.classList.remove('on');
 }
-
-/// Curated film-inspired starting points. Each preset overrides only the
-/// tone/colour params it names; crop, orient, black/white points are left
-/// alone (those are per-frame decisions).
-type PresetKey =
-  | 'sSlope' | 'saturation' | 'curves' | 'sharpen'
-  | 'temp' | 'tint' | 'shadowWarm' | 'highlightWarm';
-type Preset = { name: string } & Partial<Record<PresetKey, number>>;
-
-const PRESETS: Preset[] = [
-  { name: 'Neutral',    sSlope: 6.0, saturation: 1.30, curves: 1.00, sharpen: 0.00,
-                        temp: 0.00, tint: 0.00, shadowWarm: 0.00, highlightWarm: 0.00 },
-  { name: 'Portrait',   sSlope: 4.8, saturation: 1.15, curves: 1.10, sharpen: 0.20,
-                        temp: 0.12, tint: -0.05, shadowWarm: 0.15, highlightWarm: 0.10 },
-  { name: 'Vivid',      sSlope: 8.0, saturation: 1.70, curves: 0.90, sharpen: 0.60,
-                        temp: 0.00, tint: 0.00, shadowWarm: -0.10, highlightWarm: 0.10 },
-  { name: 'Golden',     sSlope: 5.5, saturation: 1.40, curves: 1.10, sharpen: 0.30,
-                        temp: 0.25, tint: -0.05, shadowWarm: 0.20, highlightWarm: 0.25 },
-  { name: 'Cinematic',  sSlope: 7.0, saturation: 1.15, curves: 0.95, sharpen: 0.40,
-                        temp: 0.05, tint: 0.00, shadowWarm: -0.35, highlightWarm: 0.30 },
-  { name: 'Faded',      sSlope: 4.0, saturation: 0.75, curves: 1.25, sharpen: 0.00,
-                        temp: 0.20, tint: 0.00, shadowWarm: 0.15, highlightWarm: 0.15 },
-  { name: 'Moody',      sSlope: 8.5, saturation: 1.10, curves: 0.85, sharpen: 0.30,
-                        temp: -0.15, tint: 0.00, shadowWarm: -0.20, highlightWarm: -0.05 },
-  { name: 'Cool',       sSlope: 6.0, saturation: 1.20, curves: 1.00, sharpen: 0.20,
-                        temp: -0.20, tint: 0.05, shadowWarm: -0.10, highlightWarm: -0.15 },
-];
 
 /// A loaded frame — pixels + settings + a rendered thumbnail canvas.
 interface Frame {
@@ -521,15 +496,9 @@ function buildPresets() {
     presetsEl.appendChild(btn);
   });
 }
-const PRESET_KEYS: PresetKey[] = ['sSlope', 'saturation', 'curves', 'sharpen',
-  'temp', 'tint', 'shadowWarm', 'highlightWarm'];
-
 function applyPreset(p: Preset) {
   const f = current(); if (!f) return;
-  for (const k of PRESET_KEYS) {
-    const v = p[k];
-    if (v !== undefined) f.params[k] = v;
-  }
+  applyPresetToParams(f.params, p);
   updateSlidersFromParams(f.params);
   render();
   presetsEl.querySelectorAll<HTMLButtonElement>('.preset-btn').forEach(b => {
@@ -659,92 +628,25 @@ function triggerDownload(blob: Blob, sourceName: string) {
 }
 
 // ── crop drag/resize ──────────────────────────────────────────────────
-type DragMode = 'move' | 'nw' | 'ne' | 'sw' | 'se' | 'n' | 's' | 'w' | 'e';
-interface DragState { mode: DragMode; startX: number; startY: number; startCrop: [number, number, number, number]; }
-let drag: DragState | null = null;
-const MIN_SIZE = 0.02;
-
-function canvasUVFromMouse(e: PointerEvent): { x: number; y: number } {
-  const rect = wrap.getBoundingClientRect();
-  return { x: (e.clientX - rect.left) / rect.width, y: (e.clientY - rect.top) / rect.height };
-}
-
-function startDrag(e: PointerEvent, mode: DragMode) {
-  const f = current(); if (!f) return;
-  e.preventDefault();
-  const uv = canvasUVFromMouse(e);
-  drag = { mode, startX: uv.x, startY: uv.y, startCrop: [...f.cropUV] as [number, number, number, number] };
-  (e.target as Element).setPointerCapture(e.pointerId);
-}
-
-function updateDrag(e: PointerEvent) {
-  if (!drag) return;
-  const f = current(); if (!f) return;
-  const uv = canvasUVFromMouse(e);
-  const dx = uv.x - drag.startX;
-  const dy = uv.y - drag.startY;
-  let [x0, y0, x1, y1] = drag.startCrop;
-  const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v));
-
-  if (drag.mode === 'move') {
-    const w = x1 - x0, h = y1 - y0;
-    x0 = clamp(x0 + dx, 0, 1 - w); y0 = clamp(y0 + dy, 0, 1 - h);
-    x1 = x0 + w; y1 = y0 + h;
-  } else {
-    if (drag.mode.includes('w')) x0 = clamp(x0 + dx, 0, x1 - MIN_SIZE);
-    if (drag.mode.includes('e')) x1 = clamp(x1 + dx, x0 + MIN_SIZE, 1);
-    if (drag.mode.includes('n')) y0 = clamp(y0 + dy, 0, y1 - MIN_SIZE);
-    if (drag.mode.includes('s')) y1 = clamp(y1 + dy, y0 + MIN_SIZE, 1);
-
-    if (sLock32.checked) {
-      const srcRatio = f.width / f.height;
-      const startPixelW = (drag.startCrop[2] - drag.startCrop[0]) * f.width;
-      const startPixelH = (drag.startCrop[3] - drag.startCrop[1]) * f.height;
-      const targetPixelRatio = startPixelW >= startPixelH ? 1.5 : 1 / 1.5;
-      const uvRatio = targetPixelRatio / srcRatio;
-      const w = x1 - x0, h = y1 - y0;
-
-      if (drag.mode === 'n' || drag.mode === 's') {
-        const cx = (drag.startCrop[0] + drag.startCrop[2]) / 2;
-        const newW = Math.min(h * uvRatio, 1);
-        x0 = clamp(cx - newW / 2, 0, 1); x1 = clamp(cx + newW / 2, 0, 1);
-      } else if (drag.mode === 'w' || drag.mode === 'e') {
-        const cy = (drag.startCrop[1] + drag.startCrop[3]) / 2;
-        const newH = Math.min(w / uvRatio, 1);
-        y0 = clamp(cy - newH / 2, 0, 1); y1 = clamp(cy + newH / 2, 0, 1);
-      } else {
-        const currentUvRatio = w / h;
-        if (currentUvRatio > uvRatio) {
-          const newW = h * uvRatio;
-          if (drag.mode.includes('w')) x0 = x1 - newW; else x1 = x0 + newW;
-        } else {
-          const newH = w / uvRatio;
-          if (drag.mode.includes('n')) y0 = y1 - newH; else y1 = y0 + newH;
-        }
-      }
-    }
-  }
-  f.cropUV = [clamp(x0, 0, 1), clamp(y0, 0, 1), clamp(x1, 0, 1), clamp(y1, 0, 1)];
-  paintCrop();
-}
-
-function endDrag(e: PointerEvent) {
-  if (drag) {
-    (e.target as Element).releasePointerCapture(e.pointerId);
-    drag = null;
-    const f = current(); if (f) scheduleSave(f);
-  }
-}
-
-cropRect.addEventListener('pointerdown', e => {
-  if (e.target === cropRect) startDrag(e, 'move');
-});
-cropRect.querySelectorAll<HTMLDivElement>('.crop-handle').forEach(h => {
-  h.addEventListener('pointerdown', e => startDrag(e, h.dataset.handle as DragMode));
-});
-document.addEventListener('pointermove', updateDrag);
-document.addEventListener('pointerup', endDrag);
-document.addEventListener('pointercancel', endDrag);
+installCropDrag(
+  cropRect,
+  cropRect.querySelectorAll<HTMLElement>('.crop-handle'),
+  {
+    getCrop: () => current()!.cropUV,
+    setCrop: (next: CropUV) => {
+      const f = current(); if (!f) return;
+      f.cropUV = next;
+      paintCrop();
+    },
+    getSourceSize: () => {
+      const f = current()!;
+      return { width: f.width, height: f.height };
+    },
+    isAspectLocked: () => sLock32.checked,
+    getBounds: () => wrap.getBoundingClientRect(),
+    onDragEnd: () => { const f = current(); if (f) scheduleSave(f); },
+  },
+);
 
 const btnClear = $<HTMLButtonElement>('clear-session');
 btnClear.addEventListener('click', async () => {
