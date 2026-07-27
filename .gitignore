@@ -25,3 +25,4 @@ decoder/target/
 decoder/output.png
 decoder/output.bin
 decoder/output_positive.png
+decoder/output_negative.png
