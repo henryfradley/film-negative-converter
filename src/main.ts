@@ -33,13 +33,36 @@ const btnLoad     = $<HTMLButtonElement>('btn-load');
 
 type View = 'home' | 'editor' | 'hiw';
 let activeView: View = 'home';
-function setView(v: View) {
+
+/// Map a URL path → which view we're on. Only /how-it-works is a "real"
+/// route; everything else is either the hero or the editor depending on
+/// whether frames are loaded.
+function routeFromPath(): View {
+  return location.pathname === '/how-it-works' ? 'hiw' : 'default';
+}
+function defaultView(): View { return frames.length > 0 ? 'editor' : 'home'; }
+type View_ = View | 'default';
+function _resolveView(v: View_): View { return v === 'default' ? defaultView() : v; }
+
+function setView(v: View, opts: { pushHistory?: boolean } = { pushHistory: true }) {
   activeView = v;
   viewHero.classList.toggle('active',   v === 'home');
   viewEditor.classList.toggle('active', v === 'editor');
   viewHiw.classList.toggle('active',    v === 'hiw');
   navHiw.classList.toggle('active',     v === 'hiw');
+  if (opts.pushHistory) {
+    const targetPath = v === 'hiw' ? '/how-it-works' : '/';
+    if (location.pathname !== targetPath) {
+      history.pushState(null, '', targetPath);
+    }
+  }
 }
+
+// Sync view on browser back/forward.
+window.addEventListener('popstate', () => {
+  const r = routeFromPath();
+  setView(_resolveView(r), { pushHistory: false });
+});
 
 // ── error toast ───────────────────────────────────────────────────────
 const toast      = $<HTMLDivElement>('toast');
@@ -703,8 +726,17 @@ btnClear.addEventListener('click', async () => {
 });
 
 // ── nav ───────────────────────────────────────────────────────────────
-navHome.addEventListener('click', () => setView(frames.length > 0 ? 'editor' : 'home'));
-navHiw.addEventListener('click',  () => setView('hiw'));
+navHome.addEventListener('click', () => setView(defaultView()));
+navHiw.addEventListener('click',  e => { e.preventDefault(); setView('hiw'); });
+const hiwBack = $<HTMLAnchorElement>('hiw-back');
+hiwBack.addEventListener('click', e => {
+  e.preventDefault();
+  // Prefer the natural browser back if we came from within the app;
+  // otherwise fall back to the default view (home or editor).
+  const cameFromSameOrigin = document.referrer.startsWith(location.origin);
+  if (cameFromSameOrigin && history.length > 1) history.back();
+  else setView(defaultView());
+});
 btnLoad.addEventListener('click', () => file.click());
 
 // ── file input + drag/drop ────────────────────────────────────────────
@@ -732,6 +764,10 @@ dropHero.addEventListener('click', () => file.click());
 window.addEventListener('resize', () => {
   if (renderer && current()) render();
 });
+
+// Initial route: if the URL is /how-it-works, show that view; otherwise
+// wait for restoreSaved() below to decide between home vs editor.
+if (routeFromPath() === 'hiw') setView('hiw', { pushHistory: false });
 
 // Auto-restore anything persisted from a previous session.
 restoreSaved().catch(err => console.warn('[restore]', err));

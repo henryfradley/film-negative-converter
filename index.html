@@ -366,6 +366,13 @@
       /* ── how it works ────────────────────────────────────────────── */
       .howitworks { flex-direction: column; overflow-y: auto; }
       .hiw-inner { max-width: 800px; margin: 0 auto; padding: 60px 40px 120px; }
+      .hiw-inner .hiw-back { display: inline-block; margin-bottom: 24px;
+        font-size: 11px; color: var(--text-dim); letter-spacing: 0.18em;
+        text-transform: uppercase; transition: color 0.15s;
+        padding: 6px 10px; border: 1px solid var(--border);
+        border-radius: 0; cursor: pointer; }
+      .hiw-inner .hiw-back:hover { color: var(--amber);
+        border-color: var(--amber); }
       .hiw-inner h1 { font-size: 32px; font-weight: 700; color: var(--amber);
         letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 8px;
         text-shadow: 0 0 30px rgba(var(--amber-rgb), 0.3); }
@@ -470,7 +477,7 @@
         <h1 id="nav-home">Negative<span class="dot"> · </span>Converter</h1>
         <span class="status" id="status">Load a negative</span>
         <nav>
-          <a id="nav-hiw">How it works</a>
+          <a id="nav-hiw" href="/how-it-works">How it works</a>
         </nav>
       </header>
 
@@ -618,13 +625,10 @@
       <!-- HOW IT WORKS VIEW -->
       <div class="view howitworks" id="view-hiw">
         <div class="hiw-inner">
+          <a href="/" class="hiw-back" id="hiw-back">← Back</a>
           <h1>How it works</h1>
           <p class="lede">
-            Negative Converter is a browser-based film negative → positive converter.
-            You drop a scan of a film negative (camera RAW or JPEG); the app
-            demosaics it, inverts the density, removes the C41 orange mask,
-            and hands you a finished positive image — all locally, in-browser,
-            with no server touching your files.
+            Drop a film negative scan. Rust in your browser decodes it, WebGL inverts it. Nothing uploaded.
           </p>
 
           <section>
@@ -635,46 +639,17 @@
               <div class="pipeline-step" data-num="3">Adjust<span class="sub">WebGL2 shader</span></div>
               <div class="pipeline-step" data-num="4">Export<span class="sub">Full-res PNG</span></div>
             </div>
-            <ol>
-              <li><strong>Decode.</strong> A Rust crate compiled to WebAssembly parses the RAW file using <code>rawler</code>, then a bilinear Bayer demosaic converts the raw sensor data into linear RGB. JPEGs and PNGs go through the browser's native decoder + sRGB → linear conversion.</li>
-              <li><strong>Invert.</strong> Film response is logarithmic, so we compute density: <code>D = log(base) − log(pixel)</code> per channel. This removes the orange C41 mask <em>and</em> inverts tonality in one step. Naive <code>1 − pixel</code> or <code>base / pixel</code> in linear space always clips because every image pixel is darker than the rebate.</li>
-              <li><strong>Adjust.</strong> Per-channel auto-levels on density gives us auto white balance for free. Then a WebGL2 fragment shader applies your tone curve, saturation, split-toning, sharpening, crop, and rotation in a single pass. Every slider updates the image live at 60fps because it's all uniforms.</li>
-              <li><strong>Export.</strong> Download renders through the same shader at full crop resolution via a WebGL framebuffer, so what you see is exactly what you get.</li>
-            </ol>
+            <p>Density inversion: <code>D = log(base) − log(pixel)</code> per channel. Removes the C41 orange mask and inverts tonality in one op. All tone/crop/rotate is a single WebGL2 fragment pass, so sliders update at 60fps.</p>
+          </section>
+
+          <section>
+            <h2>Formats</h2>
+            <p><strong>RAW:</strong> DNG, NEF (non-HE*), CR2/CR3, ARW, RAF, ORF, RW2. <strong>Standard:</strong> JPEG, PNG, WebP. Nikon HE/HE* NEFs need Adobe's free <em>DNG Converter</em> first.</p>
           </section>
 
           <section>
             <h2>Privacy</h2>
-            <p>Your files never leave your device. There is no server processing negatives; the site is 100% static assets served by a CDN. The Rust decoder runs in your browser via WebAssembly and the tone pipeline runs on your GPU. Your session persists in <code>IndexedDB</code> — again, local only.</p>
-          </section>
-
-          <section>
-            <h2>Supported formats</h2>
-            <p><strong>Camera RAW</strong> (decoded by rawler in WASM): DNG, Nikon NEF (non-HE*), Canon CR2/CR3, Sony ARW, Fujifilm RAF, Olympus ORF, Panasonic RW2. Other rawler-supported formats (Pentax PEF, Phase One IIQ, etc.) will attempt to decode too but aren't officially tested.</p>
-            <p><strong>Standard images</strong> (decoded by the browser): JPEG, PNG, WebP.</p>
-            <p>Not yet supported: Nikon HE / HE* NEFs. libraw hasn't reverse-engineered those compression formats yet. Workaround: run through Adobe's free <em>DNG Converter</em>, then drop the DNG here.</p>
-          </section>
-
-          <section>
-            <h2>Under the hood</h2>
-            <ul>
-              <li><strong>Rust</strong> — decoder crate compiled once for native (via <code>rsraw</code> + libraw) and again for WASM (via <code>rawler</code>).</li>
-              <li><strong>WebGL2</strong> — the whole tone/crop/rotate pipeline is one fragment shader. Sharpening samples the pipeline at 4 neighbours for a proper unsharp mask on the tone-mapped output.</li>
-              <li><strong>Vite + TypeScript</strong> — no framework, no SSR. This is a single-page app that doesn't need any of that.</li>
-              <li><strong>IndexedDB</strong> — persists the source file buffers and your per-frame settings; on reload we re-decode and restore.</li>
-              <li><strong>GitHub Actions</strong> — rebuilds the WASM automatically on every Rust change; Vercel redeploys the static site.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>Presets</h2>
-            <p>Eight curated tone presets — Neutral, Portrait (warm Portra-like), Vivid (Ektar-like), Golden, Cinematic (teal/orange), Faded, Moody, Cool. Each one overrides only the tone and color params, not your crop or rotation. Layer them, then tune.</p>
-          </section>
-
-          <section>
-            <h2>Why not just Lightroom + NLP?</h2>
-            <p>You can. That workflow costs about $10/month for Lightroom plus ~$100 one-time for Negative Lab Pro. This tool does the same core job — decode, invert, apply a film-like look — for free, without installing anything, and works on Chromebooks and phones too.</p>
-            <p>The trade-off: no local adjustments, no full curves editor, no XMP round-tripping, no batch presets library. If you're editing a wedding shoot, use Lightroom. If you scanned a few rolls on a weekend and want positives to share, this is faster.</p>
+            <p>Nothing leaves your device. Static site, no backend. Sessions persist in local <code>IndexedDB</code>.</p>
           </section>
 
           <p class="footer-note">
