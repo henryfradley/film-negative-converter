@@ -319,15 +319,21 @@
         letter-spacing: 0.2em; margin-top: 14px; text-transform: uppercase; }
 
       /* ── error toast ─────────────────────────────────────────────── */
+      /* Hidden state uses translateY of 100% + the `bottom` offset + a
+         safety margin so the toast is fully OFF-screen at rest — a naive
+         translateY(120%) would leave the top edge peeking above the
+         viewport since `bottom: 24px` already offsets it upward. */
       .toast { position: fixed; bottom: 24px; left: 50%; z-index: 200;
-        transform: translateX(-50%) translateY(120%);
+        transform: translateX(-50%) translateY(calc(100% + 48px));
         min-width: 280px; max-width: 90vw; padding: 12px 16px;
         background: var(--bg-elev); border: 1px solid var(--red);
         color: var(--text); font-size: 12px; letter-spacing: 0.05em;
         box-shadow: 0 8px 32px rgba(var(--black-rgb), 0.5);
         transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-        display: flex; align-items: flex-start; gap: 12px; }
-      .toast.show { transform: translateX(-50%) translateY(0); }
+        display: flex; align-items: flex-start; gap: 12px;
+        pointer-events: none; }
+      .toast.show { transform: translateX(-50%) translateY(0);
+        pointer-events: auto; }
       .toast .toast-icon { color: var(--red); font-weight: 700;
         font-size: 14px; flex-shrink: 0; }
       .toast .toast-body { flex: 1; word-break: break-word; }

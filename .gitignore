@@ -26,3 +26,4 @@ decoder/output.png
 decoder/output.bin
 decoder/output_positive.png
 decoder/output_negative.png
+decoder/output_positive_cropped.png

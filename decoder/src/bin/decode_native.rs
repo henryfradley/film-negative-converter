@@ -40,6 +40,23 @@ fn main() {
     image::save_buffer(out, &u8_pixels, raw.width, raw.height, image::ColorType::Rgb8)
         .expect("failed to write PNG");
     println!("Saved → {out}  (positive)");
+
+    // Also emit a cropped version (film borders trimmed) for use as web-scale
+    // sample imagery. Rough symmetric inset; not smart, just proportional.
+    let inset_x = (raw.width  as f32 * 0.04) as u32;
+    let inset_y = (raw.height as f32 * 0.08) as u32;
+    let cw = raw.width  - inset_x * 2;
+    let ch = raw.height - inset_y * 2;
+    let stride = (raw.width as usize) * 3;
+    let mut cropped = Vec::with_capacity((cw * ch * 3) as usize);
+    for y in inset_y..(raw.height - inset_y) {
+        let row = (y as usize) * stride + (inset_x as usize) * 3;
+        cropped.extend_from_slice(&u8_pixels[row .. row + (cw as usize) * 3]);
+    }
+    let out_c = "output_positive_cropped.png";
+    image::save_buffer(out_c, &cropped, cw, ch, image::ColorType::Rgb8)
+        .expect("failed to write cropped PNG");
+    println!("Saved → {out_c}  ({}×{}, borders trimmed)", cw, ch);
 }
 
 /// sRGB gamma-encode a linear [0,1] value for display.
