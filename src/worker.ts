@@ -1,8 +1,10 @@
-/// Worker: routes based on file type — RAW → Rust/WASM (rawler), or standard
-/// image (JPEG/PNG/WebP) → browser native. Then computes percentiles and
-/// transfers linear RGB + stretch params to main thread.
+/// Worker: routes based on FILE CONTENT (magic bytes, not extension/MIME).
+/// - JPEG / PNG / WebP → browser's native decoder + sRGB→linear
+/// - Everything else → Rust/WASM (rawler + bilinear demosaic)
+/// Then computes percentiles and transfers linear RGB + stretch params.
 
 import init, { decode } from '../decoder/pkg/decoder.js';
+import { detectFormat, formatName, type DetectedFormat } from './detect';
 
 export type WorkerIn = { buffer: ArrayBuffer; name: string; type: string };
 export type WorkerOut = {
@@ -17,11 +19,11 @@ export type WorkerOut = {
   crop: [number, number, number, number];
   /// Which decoder handled this file — surfaced in the status text.
   decoder: 'rawler' | 'browser';
+  /// Detected format label so the UI can surface it if it wants.
+  format: string;
 };
 
 const SAMPLE_COUNT = 200_000;
-const STANDARD_MIME = /^image\/(jpeg|png|webp)$/;
-const STANDARD_EXT  = /\.(jpg|jpeg|png|webp)$/i;
 let wasmReady: Promise<void> | null = null;
 
 async function ensureWasm(): Promise<void> {
@@ -55,26 +57,43 @@ async function decodeStandard(buffer: ArrayBuffer, mime: string):
 
 self.onmessage = async (e: MessageEvent<WorkerIn>) => {
   try {
-    const { buffer, name, type } = e.data;
+    const { buffer, name } = e.data;
 
-    // Route to the right decoder
-    const isStandard = STANDARD_MIME.test(type) || STANDARD_EXT.test(name);
+    // Detect by content — extension and MIME are hints only, magic bytes rule.
+    const detected: DetectedFormat = detectFormat(buffer);
 
     let width: number, height: number, pixels: Float32Array;
     let decoder: 'rawler' | 'browser';
 
-    if (isStandard) {
-      const r = await decodeStandard(buffer, type || 'image/jpeg');
+    if (detected.kind === 'standard') {
+      const mime = `image/${detected.format}`;
+      const r = await decodeStandard(buffer, mime);
       width = r.width; height = r.height; pixels = r.pixels;
       decoder = 'browser';
-    } else {
+    } else if (detected.kind === 'raw') {
       await ensureWasm();
-      const bytes = new Uint8Array(buffer);
-      const result = decode(bytes);
+      const result = decode(new Uint8Array(buffer));
       width  = result.width;
       height = result.height;
       pixels = result.pixels;
       decoder = 'rawler';
+    } else {
+      // Unknown magic bytes. Try rawler as a last-ditch effort — it might
+      // have a decoder for a format we don't sniff (Phase One IIQ, Minolta
+      // MRW, etc.). If rawler bails, we surface a clear "unsupported" error.
+      await ensureWasm();
+      try {
+        const result = decode(new Uint8Array(buffer));
+        width  = result.width;
+        height = result.height;
+        pixels = result.pixels;
+        decoder = 'rawler';
+      } catch {
+        throw new Error(
+          `Unrecognized file format for ${name}. First bytes: ${detected.hint}. `
+          + `Supported: JPEG, PNG, WebP, DNG, NEF (non-HE*), CR2, CR3, ARW, RAF, ORF, RW2.`,
+        );
+      }
     }
 
     // ── percentile subsample ──────────────────────────────────────────
@@ -137,6 +156,7 @@ self.onmessage = async (e: MessageEvent<WorkerIn>) => {
     const out: WorkerOut = {
       width, height, pixels,
       logBase, densityLo, densityHi, bwLo, bwHi, crop, decoder,
+      format: formatName(detected),
     };
     (self as any).postMessage(out, [pixels.buffer]);
   } catch (err) {

@@ -7,9 +7,11 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "wasm": "cd decoder && wasm-pack build --target web --no-default-features"
+    "wasm": "cd decoder && wasm-pack build --target web --no-default-features",
+    "test": "tsx scripts/verify-detect.mjs"
   },
   "devDependencies": {
+    "tsx": "^4.19.0",
     "typescript": "^5.5.0",
     "vite": "^5.4.0"
   }

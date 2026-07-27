@@ -16,5 +16,7 @@ jobs:
           node-version: '20'
           cache: npm
       - run: npm ci
+      - name: Format detector tests
+        run: npx tsx scripts/verify-detect.mjs
       - name: Typecheck + build
         run: npm run build

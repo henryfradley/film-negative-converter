@@ -431,7 +431,7 @@
             <h1>Drop a negative</h1>
             <p class="sub">Convert film scans right in your browser</p>
             <p class="formats">RAW · JPEG · PNG · WebP</p>
-            <p class="formats" style="opacity:0.7">DNG · NEF · CR2 · CR3 · ARW · RAF · ORF · RW2 · PEF</p>
+            <p class="formats" style="opacity:0.7">DNG · NEF · CR2 · CR3 · ARW · RAF · ORF · RW2</p>
             <button class="load-btn" id="btn-load">Select files</button>
             <p class="note">HE* Nikon NEF → convert to DNG first · nothing uploaded anywhere</p>
           </div>
@@ -588,7 +588,7 @@
 
           <section>
             <h2>Supported formats</h2>
-            <p><strong>Camera RAW</strong> (decoded by rawler in WASM): DNG, NEF, CR2, CR3, CRW, ARW, RAF, ORF, RW2, PEF, SRW, IIQ, 3FR, DCR, MRW.</p>
+            <p><strong>Camera RAW</strong> (decoded by rawler in WASM): DNG, Nikon NEF (non-HE*), Canon CR2/CR3, Sony ARW, Fujifilm RAF, Olympus ORF, Panasonic RW2. Other rawler-supported formats (Pentax PEF, Phase One IIQ, etc.) will attempt to decode too but aren't officially tested.</p>
             <p><strong>Standard images</strong> (decoded by the browser): JPEG, PNG, WebP.</p>
             <p>Not yet supported: Nikon HE / HE* NEFs. libraw hasn't reverse-engineered those compression formats yet. Workaround: run through Adobe's free <em>DNG Converter</em>, then drop the DNG here.</p>
           </section>
@@ -622,7 +622,7 @@
       </div>
 
       <!-- Shared file input -->
-      <input type="file" id="file" multiple accept=".dng,.nef,.cr2,.cr3,.crw,.arw,.raf,.orf,.rw2,.pef,.srw,.iiq,.3fr,.dcr,.mrw,image/jpeg,image/png,image/webp" />
+      <input type="file" id="file" multiple accept=".dng,.nef,.cr2,.cr3,.arw,.raf,.orf,.rw2,image/jpeg,image/png,image/webp" />
     </div>
 
     <div class="loading" id="loading">
