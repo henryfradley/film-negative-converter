@@ -42,12 +42,17 @@ function setView(v: View) {
 }
 
 // ── error toast ───────────────────────────────────────────────────────
-const toast     = $<HTMLDivElement>('toast');
-const toastBody = $<HTMLSpanElement>('toast-body');
+const toast      = $<HTMLDivElement>('toast');
+const toastBody  = $<HTMLSpanElement>('toast-body');
 const toastClose = $<HTMLButtonElement>('toast-close');
 let toastTimer: number | null = null;
-function showError(msg: string, ms = 6000) {
-  toastBody.textContent = msg;
+
+/// Show a toast. `content` can be a plain string (safely set via textContent)
+/// or a pre-built DOM node (for messages with links, formatting, etc.).
+function showError(content: string | Node, ms = 6000) {
+  toastBody.replaceChildren(
+    typeof content === 'string' ? document.createTextNode(content) : content,
+  );
   toast.classList.add('show');
   if (toastTimer) clearTimeout(toastTimer);
   if (ms > 0) toastTimer = window.setTimeout(() => toast.classList.remove('show'), ms);
@@ -56,6 +61,32 @@ toastClose.addEventListener('click', () => {
   toast.classList.remove('show');
   if (toastTimer) { clearTimeout(toastTimer); toastTimer = null; }
 });
+
+/// Friendly explanation + workaround link for Nikon HE / HE* NEFs — the one
+/// format we can't touch until libraw adds a decoder for it.
+function heNotSupportedContent(fileName: string): HTMLElement {
+  const root = document.createElement('div');
+  const title = document.createElement('strong');
+  title.style.color = 'var(--amber)';
+  title.style.display = 'block';
+  title.style.marginBottom = '6px';
+  title.textContent = "Nikon HE / HE* NEFs aren't supported yet";
+  root.appendChild(title);
+  root.appendChild(document.createTextNode(
+    `${fileName} uses a proprietary Nikon compression that no open-source decoder handles yet. Convert to DNG first with Adobe's free `,
+  ));
+  const link = document.createElement('a');
+  link.href = 'https://helpx.adobe.com/camera-raw/using/adobe-dng-converter.html';
+  link.target = '_blank';
+  link.rel = 'noopener noreferrer';
+  link.textContent = 'DNG Converter';
+  link.style.color = 'var(--amber)';
+  link.style.textDecoration = 'underline';
+  root.appendChild(link);
+  root.appendChild(document.createTextNode(', then drop the DNG here.'));
+  return root;
+}
+const HE_ERROR_RE = /HighEfficency|HighEfficiency|nikon.*he\*|\bhe\*|not supported/i;
 const cropRect    = $<HTMLDivElement>('crop-rect');
 const dimTop      = $<HTMLDivElement>('dim-top');
 const dimBottom   = $<HTMLDivElement>('dim-bottom');
@@ -388,7 +419,12 @@ async function loadFiles(fileList: FileList | File[]) {
       }).catch(err => console.warn('[db] save failed:', err));
     } catch (err) {
       placeholders[i].remove();
-      showError(`Couldn't decode ${f.name}: ${err instanceof Error ? err.message : err}`);
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/\.nef$/i.test(f.name) && HE_ERROR_RE.test(msg)) {
+        showError(heNotSupportedContent(f.name), 20000);
+      } else {
+        showError(`Couldn't decode ${f.name}: ${msg}`);
+      }
     }
     showLoading(f.name, i + 1, list.length);
   }
