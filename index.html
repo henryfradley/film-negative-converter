@@ -127,18 +127,16 @@
         max-width: 1400px; width: 100%; }
       .col-left { min-width: 0; }
       .col-left h1 { font-family: 'Space Mono', monospace;
-        font-size: clamp(28px, 4vw + 0.5rem, 60px); font-weight: 700;
+        font-size: clamp(42px, 6vw + 0.75rem, 90px); font-weight: 700;
         color: var(--amber); letter-spacing: 0.14em; margin: 0 0 20px;
         text-transform: uppercase; line-height: 1;
         text-shadow: 0 0 30px rgba(var(--amber-rgb), 0.3); }
       .col-left .sub { color: var(--text-dim);
         font-size: clamp(11px, 1vw, 13px);
         letter-spacing: 0.15em; text-transform: uppercase; margin: 0 0 8px; }
-      .col-left .formats { color: var(--text-faint);
+      .col-left .formats { color: var(--text-dim);
         font-size: clamp(10px, 0.85vw, 11px);
         margin-top: clamp(16px, 2vh, 24px); line-height: 1.8; }
-      .col-left .note { color: var(--text-faint); font-size: 10px;
-        margin-top: 16px; opacity: 0.7; max-width: 380px; }
       .col-left .load-btn { display: inline-block; width: auto;
         margin-top: clamp(16px, 3vh, 28px);
         padding: 14px 28px; border: 1px solid var(--amber); color: var(--amber);
@@ -442,14 +440,12 @@
         .frame-content { grid-template-columns: 1fr; gap: 20px;
           padding: 24px 18px; text-align: center; }
         .col-left { text-align: center; }
-        .col-left h1 { font-size: clamp(26px, 8vw, 36px);
+        .col-left h1 { font-size: clamp(38px, 12vw, 54px);
           letter-spacing: 0.08em; text-align: center;
-          margin-bottom: 12px; line-height: 1.05; }
+          margin-bottom: 14px; line-height: 1.05; }
         .col-left .sub { font-size: 10px; letter-spacing: 0.12em; }
         .col-left .formats { text-align: center; font-size: 9px;
           margin-top: 14px; letter-spacing: 0.1em; }
-        .col-left .note { text-align: center; max-width: none;
-          font-size: 9px; margin-top: 10px; }
         .col-left .load-btn { margin-top: 14px; padding: 12px 24px;
           font-size: 11px; width: auto; }
 
@@ -490,9 +486,8 @@
               <h1>Drop a<br/>negative</h1>
               <p class="sub">Convert film scans right in your browser</p>
               <p class="formats">RAW · JPEG · PNG · WebP</p>
-              <p class="formats" style="opacity:0.7">DNG · NEF · CR2 · CR3 · ARW · RAF · ORF · RW2</p>
+              <p class="formats">DNG · NEF · CR2 · CR3 · ARW · RAF · ORF · RW2</p>
               <button class="load-btn" id="btn-load">Select or drop files</button>
-              <p class="note">HE* Nikon NEF → convert to DNG first · nothing uploaded anywhere</p>
             </div>
             <div class="col-right" aria-label="Before and after example">
               <figure>
