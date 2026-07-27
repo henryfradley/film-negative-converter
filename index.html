@@ -143,6 +143,20 @@
         background: transparent; font-family: inherit; }
       .frame-content .load-btn:hover { background: var(--amber); color: var(--bg); }
 
+      /* Before/after demo strip inside the film frame */
+      .demo { display: flex; align-items: center; justify-content: center;
+        gap: 22px; margin-top: 42px; flex-wrap: wrap; }
+      .demo figure { margin: 0; text-align: center; }
+      .demo img { display: block; height: 140px; width: auto;
+        border: 1px solid var(--border-strong);
+        box-shadow: 0 6px 30px rgba(var(--black-rgb), 0.55); }
+      .demo figcaption { margin-top: 8px; font-size: 9px;
+        letter-spacing: 0.2em; text-transform: uppercase;
+        color: var(--text-dim); }
+      .demo-arrow { font-size: 26px; color: var(--amber);
+        text-shadow: 0 0 12px rgba(var(--amber-rgb), 0.6);
+        line-height: 1; align-self: center; padding-bottom: 22px; }
+
       /* ── editor view ─────────────────────────────────────────────── */
       .editor .main { flex: 1; display: flex; overflow: hidden; min-height: 0; }
       .canvas-column { flex: 1; display: flex; flex-direction: column;
@@ -398,6 +412,11 @@
         .edge-text span { overflow: hidden; text-overflow: ellipsis;
           white-space: nowrap; }
 
+        /* Demo strip inside hero */
+        .demo { gap: 12px; margin-top: 24px; }
+        .demo img { height: 90px; }
+        .demo-arrow { font-size: 20px; padding-bottom: 18px; }
+
         /* How it works */
         .hiw-inner { padding: 30px 20px 80px; }
         .hiw-inner h1 { font-size: 22px; }
@@ -434,6 +453,18 @@
             <p class="formats" style="opacity:0.7">DNG · NEF · CR2 · CR3 · ARW · RAF · ORF · RW2</p>
             <button class="load-btn" id="btn-load">Select files</button>
             <p class="note">HE* Nikon NEF → convert to DNG first · nothing uploaded anywhere</p>
+
+            <div class="demo" aria-label="Before and after example">
+              <figure>
+                <img src="/samples/sample-negative.jpg" alt="Camera scan of a 35mm film negative — orange cast, inverted tonality" loading="lazy" />
+                <figcaption>Negative</figcaption>
+              </figure>
+              <span class="demo-arrow" aria-hidden="true">→</span>
+              <figure>
+                <img src="/samples/sample-positive.jpg" alt="Positive image after conversion — natural colors, deep blacks" loading="lazy" />
+                <figcaption>Positive</figcaption>
+              </figure>
+            </div>
           </div>
         </div>
 
