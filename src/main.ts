@@ -34,15 +34,14 @@ const btnLoad     = $<HTMLButtonElement>('btn-load');
 type View = 'home' | 'editor' | 'hiw';
 let activeView: View = 'home';
 
-/// Map a URL path → which view we're on. Only /how-it-works is a "real"
-/// route; everything else is either the hero or the editor depending on
-/// whether frames are loaded.
-function routeFromPath(): View {
-  return location.pathname === '/how-it-works' ? 'hiw' : 'default';
-}
+/// The "default" view (hero or editor) depends on whether any frames are loaded.
 function defaultView(): View { return frames.length > 0 ? 'editor' : 'home'; }
-type View_ = View | 'default';
-function _resolveView(v: View_): View { return v === 'default' ? defaultView() : v; }
+
+/// Which view the current URL wants to show. Only /how-it-works is a real
+/// route — everything else is defaultView().
+function viewFromPath(): View {
+  return location.pathname === '/how-it-works' ? 'hiw' : defaultView();
+}
 
 function setView(v: View, opts: { pushHistory?: boolean } = { pushHistory: true }) {
   activeView = v;
@@ -60,8 +59,7 @@ function setView(v: View, opts: { pushHistory?: boolean } = { pushHistory: true 
 
 // Sync view on browser back/forward.
 window.addEventListener('popstate', () => {
-  const r = routeFromPath();
-  setView(_resolveView(r), { pushHistory: false });
+  setView(viewFromPath(), { pushHistory: false });
 });
 
 // ── error toast ───────────────────────────────────────────────────────
@@ -767,7 +765,7 @@ window.addEventListener('resize', () => {
 
 // Initial route: if the URL is /how-it-works, show that view; otherwise
 // wait for restoreSaved() below to decide between home vs editor.
-if (routeFromPath() === 'hiw') setView('hiw', { pushHistory: false });
+if (location.pathname === '/how-it-works') setView('hiw', { pushHistory: false });
 
 // Auto-restore anything persisted from a previous session.
 restoreSaved().catch(err => console.warn('[restore]', err));
